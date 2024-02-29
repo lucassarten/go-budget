@@ -1,0 +1,58 @@
+/* display contents side by side */
+.target-tables-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  overflow-y: hidden;
+  width: calc(100% - 10px);
+  height: calc(100vh - 51px);
+  border: 5px solid var(--budget-targets-border);
+}
+
+.targets-table {
+  width: 100%;
+  height: calc(100% - 50px);
+}
+
+.expense-targets-table {
+  height: calc(100vh - 61px);
+  border: 5px solid var(--expense-border);
+}
+
+.income-targets-table {
+  height: calc(100vh - 61px);
+  border: 5px solid var(--income-border);
+}
+
+.button-add-category {
+  width: 100px;
+}
+
+.button-delete-category {
+  width: 100px;
+}
+
+.button-delete-category:disabled:hover {
+  transform: none;
+  cursor: default;
+}
+
+.add-category-form {
+  display: flex;
+  flex-direction: column;
+  margin-top: 10px;
+}
+
+.button-add-category {
+  color: var(--button-text-color);
+  background-color: var(--button-add-category);
+}
+
+.button-delete-category:disabled {
+  color: var(--button-text-color);
+  background-color: var(--button-delete-category-disabled);
+}
+
+.button-delete-category {
+  color: var(--button-text-color);
+  background-color: var(--button-delete-category);
+}

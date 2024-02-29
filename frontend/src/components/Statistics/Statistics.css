@@ -1,0 +1,33 @@
+.statistics-container {
+  position: absolute;
+  width: calc(100% - 10px);
+  height: calc(100% - 51px);
+  border: 5px solid var(--statistics-border);
+}
+
+.time-period-selector-statistics {
+  width: 250px;
+}
+
+.statistics-tables-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  width: 100%;
+}
+
+.statistics-summary-container {
+  border-bottom: 5px solid var(--statistics-border);
+}
+
+.statistics-summary-Expense {
+  border: 5px solid var(--expense-border);
+}
+
+.statistics-summary-Income {
+  border: 5px solid var(--income-border);
+}
+
+.statistics-table-header {
+  font-weight: bold;
+  font-size: 1.2em;
+}

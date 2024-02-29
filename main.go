@@ -2,6 +2,7 @@ package main
 
 import (
 	"embed"
+	"log"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/logger"
@@ -16,6 +17,8 @@ var assets embed.FS
 func main() {
 	// Create an instance of the app structure
 	app := NewApp()
+	// Create an instance of the db structure
+	db := NewDb("./user.db")
 
 	// Create application with options
 	err := wails.Run(&options.App{
@@ -29,12 +32,13 @@ func main() {
 			Assets: assets,
 		},
 		BackgroundColour: &options.RGBA{R: 0, G: 0, B: 0, A: 1},
-		OnStartup:        app.startup,
+		OnStartup:        db.startup,
 		OnDomReady:       app.domready,
 		OnShutdown:       app.shutdown,
-		OnBeforeClose:    app.beforeClose,
+		OnBeforeClose:    db.beforeClose,
 		Bind: []interface{}{
 			app,
+			db,
 		},
 		Linux: &linux.Options{
 			WindowIsTranslucent: false,
@@ -47,6 +51,6 @@ func main() {
 	})
 
 	if err != nil {
-		println("Error:", err.Error())
+		log.Fatal(err)
 	}
 }

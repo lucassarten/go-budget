@@ -1,0 +1,39 @@
+:root {
+  /* tabs in the top toolbar */
+  --tab-text-color: #ffffff;
+  --tab-dashboard: #2E5B9E;
+  --tab-dashboard-hover: #4276b9;
+  --tab-dashboard-active: #4276b9;
+  --tab-statistics: #22948e;
+  --tab-statistics-hover: #26a6a0;
+  --tab-statistics-active: #26a6a0;
+  --tab-income: #75A52E;
+  --tab-income-hover: #83b834;
+  --tab-income-active: #83b834;
+  --tab-expenses: #A63D26;
+  --tab-expenses-hover: #be492f;
+  --tab-expenses-active: #be492f;
+  --tab-budgetTargets: #6226a6;
+  --tab-budgetTargets-hover: #7d34c7;
+  --tab-budgetTargets-active: #7d34c7;
+  /* buttons in the top toolbar of the transactions table */
+  --button-text-color: #ffffff;
+  --button-add-transaction: #75A52E;
+  --button-delete-transaction: #A63D26;
+  --button-delete-transaction-disabled: #c0c0c0;
+  /* buttons in the add transaction form */
+  --button-add-transaction-form: #75A52E;
+  --button-cancel-transaction-form: #A63D26;
+  --button-cancel-transaction-form-disabled: #c0c0c0;
+  /* buttons in the add category form */
+  --button-add-category: #75A52E;
+  --button-delete-category: #A63D26;
+  --button-delete-category-disabled: #c0c0c0;
+  /* table borders */
+  --general-border: #c0c0c0;
+  --expense-border: #be492f;
+  --income-border: #83b834;
+  --statistics-border: #26a6a0;
+  --dashboard-border: #4276b9;
+  --budget-targets-border: #7d34c7;
+}

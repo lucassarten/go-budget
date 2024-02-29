@@ -1,0 +1,85 @@
+.tabs-container {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-evenly;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  left: 0;
+  width: 100%;
+  max-height: 50px;
+  z-index: 100;
+}
+
+#tab {
+  color: var(--tab-text-color);
+  border-radius: 0;
+  font-size: 18px;
+  font-weight: bold;
+  transition: all 0.3s ease;
+  width: 100%;
+}
+
+#tab:hover {
+  transform: none;
+}
+
+.tab-dashboard {
+  background-color: var(--tab-dashboard);
+}
+
+.tab-dashboard:hover {
+  background-color: var(--tab-dashboard-hover);
+}
+
+.tab-dashboard.active {
+  background-color: var(--tab-dashboard-active);
+}
+
+.tab-statistics {
+  background-color: var(--tab-statistics);
+}
+
+.tab-statistics:hover {
+  background-color: var(--tab-statistics-hover);
+}
+
+.tab-statistics.active {
+  background-color: var(--tab-statistics-active);
+}
+
+.tab-income {
+  background-color: var(--tab-income);
+}
+
+.tab-income:hover {
+  background-color: var(--tab-income-hover);
+}
+
+.tab-income.active {
+  background-color: var(--tab-income-active);
+}
+
+.tab-expenses {
+  background-color: var(--tab-expenses);
+}
+
+.tab-expenses:hover {
+  background-color: var(--tab-expenses-hover);
+}
+
+.tab-expenses.active {
+  background-color: var(--tab-expenses-active);
+}
+
+.tab-budgetTargets {
+  background-color: var(--tab-budgetTargets);
+}
+
+.tab-budgetTargets:hover {
+  background-color: var(--tab-budgetTargets-hover);
+}
+
+.tab-budgetTargets.active {
+  background-color: var(--tab-budgetTargets-active);
+}
