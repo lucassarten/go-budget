@@ -2,17 +2,15 @@
 /* eslint-disable promise/catch-or-return */
 /* eslint-disable no-nested-ternary */
 /* eslint-disable camelcase */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   MaterialReactTable,
   useMaterialReactTable,
   MRT_EditActionButtons,
-  type MRT_Cell,
   type MRT_ColumnDef,
-  type MRT_RowSelectionState,
   type MRT_TableOptions,
-  type MRT_Table,
   type MRT_Row,
+  createRow,
 } from 'material-react-table';
 import {
   Box,
@@ -24,20 +22,18 @@ import {
   Tooltip,
 } from '@mui/material';
 import {
-  QueryClient,
-  QueryClientProvider,
   useMutation,
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { buttonStyleAdd, buttonStyleCancel } from '../../styles/MUI';
 
-import { Category } from '../Types';
-import { Query } from "../../../wailsjs/go/main/Db";
+import { Exec, QueryCategories } from "../../../wailsjs/go/db/Db";
+import { db } from "../../../wailsjs/go/models";
 
 const validateRequired = (value: string) => !!value.length;
+
 const formatCurrency = (value: number) => {
   const formatter = new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -46,210 +42,105 @@ const formatCurrency = (value: number) => {
   });
   return formatter.format(value);
 };
+
 const validateAmount = (value: string) => {
   const number = Number(value);
   return !Number.isNaN(number) && number >= 0;
 };
 
-function validateCategory(category: Category) {
+const validateColour = (value: string) => {
+  const regex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
+  return regex.test(value);
+}
+
+function validateCategory(category: db.Category) {
   return {
     name: !validateRequired(category.name) ? 'Name is required' : '',
     target: !validateAmount(String(category.target))
       ? 'Target must be a positive number'
       : '',
+    colour: !validateColour(category.colour) ? 'Colour must be a valid hex code' : '',
   };
 }
 
-interface CreateModalProps {
-  columns: MRT_ColumnDef<Category>[];
-  onClose: () => void;
-  // eslint-disable-next-line no-unused-vars
-  onSubmit: (values: Category) => void;
-  open: boolean;
-}
-
-// export function AddCategoryModal({
-//   open,
-//   columns,
-//   onClose,
-//   onSubmit,
-// }: CreateModalProps) {
-//   const [values, setValues] = useState<any>(() =>
-//     columns.reduce((acc, column) => {
-//       acc[column.accessorKey ?? ''] = '';
-//       return acc;
-//     }, {} as any)
-//   );
-
-//   const handleSubmit = () => {
-//     // put your validation logic here
-//     onSubmit(values);
-//     onClose();
-//   };
-
-//   return (
-//     <Dialog open={open}>
-//       <DialogTitle textAlign="center">Add Expense Category</DialogTitle>
-//       <DialogContent>
-//         <form
-//           onSubmit={(e) => e.preventDefault()}
-//           className="add-category-form"
-//         >
-//           <Stack
-//             sx={{
-//               width: '100%',
-//               minWidth: { xs: '300px', sm: '360px', md: '400px' },
-//               gap: '1.5rem',
-//             }}
-//           >
-//             {columns.slice(0, 1).map((column) => (
-//               <TextField
-//                 key={column.accessorKey}
-//                 label={column.header}
-//                 name={column.accessorKey}
-//                 onChange={(e) =>
-//                   setValues({ ...values, [e.target.name]: e.target.value })
-//                 }
-//                 required
-//                 error={!validateRequired(values.name)}
-//               />
-//             ))}
-//             {columns.slice(1, 2).map((column) => (
-//               <TextField
-//                 key={column.accessorKey}
-//                 label={column.header}
-//                 name={column.accessorKey}
-//                 onChange={(e) =>
-//                   setValues({ ...values, [e.target.name]: e.target.value })
-//                 }
-//                 required
-//                 error={!validateAmount(values.target)}
-//                 helperText={
-//                   !validateAmount(values.target)
-//                     ? `${column.accessorKey} must be a positive number`
-//                     : ''
-//                 }
-//               />
-//             ))}
-//             {columns.slice(2).map((column) => (
-//               <TextField
-//                 key={column.accessorKey}
-//                 label={column.header}
-//                 name={column.accessorKey}
-//                 onChange={(e) =>
-//                   setValues({ ...values, [e.target.name]: e.target.value })
-//                 }
-//               />
-//             ))}
-//           </Stack>
-//         </form>
-//       </DialogContent>
-//       <DialogActions sx={{ p: '1.25rem' }}>
-//         <Button onClick={onClose} style={buttonStyleCancel}>
-//           Cancel
-//         </Button>
-//         <Button
-//           onClick={handleSubmit}
-//           style={
-//             !validateAmount(values.target) ||
-//             !validateRequired(values.target) ||
-//             !validateRequired(values.name)
-//               ? buttonStyleAdd.disabled
-//               : buttonStyleAdd
-//           }
-//           // inactive if there are validation errors
-//           disabled={
-//             !validateAmount(values.target) ||
-//             !validateRequired(values.target) ||
-//             !validateRequired(values.name)
-//           }
-//         >
-//           Add
-//         </Button>
-//       </DialogActions>
-//     </Dialog>
-//   );
-// }
-
-function useCreateCategory(){
+function useCreateCategory(type: string){
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (category: Category) => {
+    mutationFn: async (category: db.Category) => {
       // update row in db
-      return await Query(
-        "INSERT INTO CategoriesExpense (name, target, colour) VALUES ?, ?, ?",
+      return await Exec(
+        `INSERT INTO Categories${type} (name, target, colour) VALUES (?, ?, ?)`,
         [category.name, category.target, category.colour]
       );
     },
     //client side optimistic update
-    onMutate: (newCategoryInfo: Category) => {
-      queryClient.setQueryData(['categories'], (prevCategories: any) =>
+    onMutate: (newCategoryInfo: db.Category) => {
+      queryClient.setQueryData(['categories'+type], (prevCategories: any) =>
         [
         ...prevCategories, newCategoryInfo
-        ] as Category[],
+        ] as db.Category[],
       );
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['categories'] }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['categories'+type] }),
   });
 }
 
-function useGetCategories() {
-  return useQuery<Category[]>({
-    queryKey: ['categories'],
+function useGetCategories(type: string) {
+  return useQuery<db.Category[]>({
+    queryKey: ['categories'+type],
     queryFn: async () => {
       console.log("attempting to get categories from db")
-      return await Query("SELECT * FROM CategoriesExpense", []);
+      return await QueryCategories(`SELECT * FROM Categories${type}`, []);
     },
     refetchOnWindowFocus: false,
   });
 }
 
-function useUpdateCategory(){
+function useUpdateCategory(type: string){
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (category: Category) => {
+    mutationFn: async (category: db.Category) => {
       // update row in db
       console.log("attempting to update categories")
-      return await Query(
-        "UPDATE CategoriesExpense SET name = ?, target = ?, colour = ? WHERE name = ?", 
+      return await Exec(
+        `UPDATE Categories${type} SET name = ?, target = ?, colour = ? WHERE name = ?`, 
         [category.name, category.target, category.colour, category.name]
       );
     },
     //client side optimistic update
-    onMutate: (newCategoryInfo: Category) => {
-      queryClient.setQueryData(['categories'], (prevCategories: any) =>
-        prevCategories?.map((prevCategory: Category) =>
+    onMutate: (newCategoryInfo: db.Category) => {
+      queryClient.setQueryData(['categories'+type], (prevCategories: any) =>
+        prevCategories?.map((prevCategory: db.Category) =>
           prevCategory.name === newCategoryInfo.name ? newCategoryInfo : prevCategory,
         ),
       );
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['categories'] }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['categories'+type] }),
   });
 }
 
-function useDeleteCategory(){
+function useDeleteCategory(type: string){
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (name: string) => {
       // update row in db
       console.log("attempting to delete category from db")
-      return await Query("DELETE FROM CategoriesIncome WHERE name = ?", [name]);
+      return await Exec(`DELETE FROM Categories${type} WHERE name = ?`, [name]);
     },
     // client side optimistic update
     onMutate: (name: string) => {
-      queryClient.setQueryData(['categories'], (prevCategories: any) =>
-        prevCategories?.filter((prevCategory: Category) => prevCategory.name !== name),
+      queryClient.setQueryData(['categories'+type], (prevCategories: any) =>
+        prevCategories?.filter((prevCategory: db.Category) => prevCategory.name !== name),
       );
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['categories'] }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['categories'+type] }),
   });
 }
 
-const CategoryExpenseTable = () => {
+const CategoryTable = ({ type }: { type: string }) => {
   const [validationErrors, setValidationErrors] = useState<Record<string, string | undefined>>({});
-  const [createModalOpen, setCreateModalOpen] = useState(false);
 
-  const columns = useMemo<MRT_ColumnDef<Category>[]>(
+  const columns = useMemo<MRT_ColumnDef<db.Category>[]>(
     () => [
       {
         accessorKey: 'name',
@@ -358,7 +249,9 @@ const CategoryExpenseTable = () => {
               width: '100%',
               height: '100%',
             }}
-          />
+          >
+            {cell.getValue() as React.ReactNode}
+          </div>
         ),
         muiEditTextFieldProps: {
           required: true,
@@ -372,11 +265,11 @@ const CategoryExpenseTable = () => {
             }),
           // validate on change
           onChange: (event: { target: { value: string; }; }) => {
-            const isValid = validateAmount(event.target.value);
+            const isValid = validateColour(event.target.value);
             if (!isValid) {
               setValidationErrors({
                 ...validationErrors,
-                colour: 'Target must be a positive number',
+                colour: 'Colour must be a valid hex code',
               });
             } else {
               setValidationErrors({
@@ -387,11 +280,11 @@ const CategoryExpenseTable = () => {
           },
           // validate on blur
           onBlur: (event: { target: { value: string; }; }) => {
-            const isValid = validateAmount(event.target.value);
+            const isValid = validateColour(event.target.value);
             if (!isValid) {
               setValidationErrors({
                 ...validationErrors,
-                colour: 'Target must be a positive number',
+                colour: 'Colour must be a valid hex code',
               });
             } else {
               setValidationErrors({
@@ -406,24 +299,23 @@ const CategoryExpenseTable = () => {
     [validationErrors],
   );
 
-
   // hooks
-  const { mutateAsync: createCategory, isPending: isCreatingCategory } = useCreateCategory();
+  const { mutateAsync: createCategory, isPending: isCreatingCategory } = useCreateCategory(type);
   const {
     data: fetchedCategories = [],
     isError: isLoadingCategoriesError,
     isFetching: isFetchingCategories,
     isLoading: isLoadingCategories,
-  } = useGetCategories();
-  const { mutateAsync: updateCategory, isPending: isUpdatingCategory } = useUpdateCategory();
-  const  { mutateAsync: deleteCategory, isPending: isDeletingCategory } = useDeleteCategory();
+  } = useGetCategories(type);
+  const { mutateAsync: updateCategory, isPending: isUpdatingCategory } = useUpdateCategory(type);
+  const  { mutateAsync: deleteCategory, isPending: isDeletingCategory } = useDeleteCategory(type);
 
   // actions
-  const handleCreateCategory: MRT_TableOptions<Category>['onCreatingRowSave'] = async ({
+  const handleCreateCategory: MRT_TableOptions<db.Category>['onCreatingRowSave'] = async ({
     values,
     table,
   }: {
-    values: Category;
+    values: db.Category;
     table: any;
   }) => {
     const newValidationErrors = validateCategory(values);
@@ -433,20 +325,20 @@ const CategoryExpenseTable = () => {
     }
     setValidationErrors({});
     await createCategory(values);
-    table.setCreatingRow(null);
+    table.setCreatingRow(false);
   }
 
-  const openDeleteConfirmModal = (row: MRT_Row<Category>) => {
+  const openDeleteConfirmModal = (row: MRT_Row<db.Category>) => {
     if (window.confirm('Are you sure you want to delete this Category?')) {
       deleteCategory(row.original.name);
     }
   };
 
-  const handleSaveCategory: MRT_TableOptions<Category>['onEditingRowSave'] = async ({
+  const handleSaveCategory: MRT_TableOptions<db.Category>['onEditingRowSave'] = async ({
     values,
     table,
   }: {
-    values: Category;
+    values: db.Category;
     table: any;
   }) => {
     const newValidationErrors = validateCategory(values);
@@ -459,15 +351,16 @@ const CategoryExpenseTable = () => {
     table.setEditingRow(null);
   };
 
-  const table = useMaterialReactTable<Category>({
+  const table = useMaterialReactTable<db.Category>({
     columns,
     data: fetchedCategories,
-    createDisplayMode: 'modal',
+    createDisplayMode: 'row',
     editDisplayMode: 'row',
     enableEditing: true,
     enableBottomToolbar: false,
     enableStickyHeader: true,
     enablePagination: false,
+    memoMode: 'cells',
     getRowId: (row) => row.name,
     muiToolbarAlertBannerProps: isLoadingCategoriesError
       ? {
@@ -479,12 +372,18 @@ const CategoryExpenseTable = () => {
       sx: {
         minHeight: '500px',
       },
+      style: {
+        maxHeight: 'calc(100vh - 121px)',
+      }
     },
     onCreatingRowCancel: () => setValidationErrors({}),
     onCreatingRowSave: handleCreateCategory,
     onEditingRowCancel: () => setValidationErrors({}),
     onEditingRowSave: handleSaveCategory,
-    renderCreateRowDialogContent: ({ table, row, internalEditComponents }) => (
+    renderCreateRowDialogContent: useCallback<
+      Required<MRT_TableOptions<db.Category>>['renderCreateRowDialogContent']
+    >(
+      ({ table, row, internalEditComponents }) => 
       <>
         <DialogTitle variant="h3">Add Category</DialogTitle>
         <DialogContent
@@ -495,10 +394,14 @@ const CategoryExpenseTable = () => {
         <DialogActions>
           <MRT_EditActionButtons variant="text" table={table} row={row} />
         </DialogActions>
-      </>
+      </>,
+      [],
     ),
     //optionally customize modal content
-    renderEditRowDialogContent: ({ table, row, internalEditComponents }) => (
+    renderEditRowDialogContent: useCallback<
+      Required<MRT_TableOptions<db.Category>>['renderEditRowDialogContent']
+    >( 
+      ({ table, row, internalEditComponents }) => 
       <>
         <DialogTitle variant="h3">Edit Category</DialogTitle>
         <DialogContent
@@ -509,9 +412,13 @@ const CategoryExpenseTable = () => {
         <DialogActions>
           <MRT_EditActionButtons variant="text" table={table} row={row} />
         </DialogActions>
-      </>
+      </>,
+      [],
     ),
-    renderRowActions: ({ row, table }) => (
+    renderRowActions: useCallback<
+    Required<MRT_TableOptions<db.Category>>['renderRowActions']
+    >( 
+      ({ row, table }) =>
       <Box sx={{ display: 'flex', gap: '1rem' }}>
         <Tooltip title="Edit">
           <IconButton onClick={() => table.setEditingRow(row)}>
@@ -523,27 +430,38 @@ const CategoryExpenseTable = () => {
             <DeleteIcon />
           </IconButton>
         </Tooltip>
-      </Box>
+      </Box>,
+      [],
     ),
-    renderTopToolbarCustomActions: ({ table }) => (
+    renderTopToolbarCustomActions: useCallback<
+    Required<MRT_TableOptions<db.Category>>['renderTopToolbarCustomActions']
+    >( 
+      ({ table }) => 
       <span className="table-top-toolbar-container">
         <Button
           className="button-add-category"
           variant="contained"
           onClick={() => {
-            table.setCreatingRow(true); //simplest way to open the create row modal with no default values
-            //or you can pass in a row object to set default values with the `createRow` helper function
-            // table.setCreatingRow(
-            //   createRow(table, {
-            //     //optionally pass in default values for the new row, useful for nested data or other complex scenarios
-            //   }),
-            // );
+            table.setCreatingRow(true);
+            table.setCreatingRow(
+              createRow(table, {
+                name: 'category',
+                target: 0,
+                colour: '#'+Math.floor(Math.random()*16777215).toString(16),
+              }),
+            );
+            // scroll to top of table
+            document.querySelector('.MuiTableContainer-root')?.scrollTo({
+              top: 0,
+              behavior: 'smooth',
+            });
           }}
         >
           Add
         </Button>
-        <h2>Expense</h2>
-      </span>
+        <h2>{type}</h2>
+      </span>,
+      [],
     ),
     state: {
       isLoading: isLoadingCategories,
@@ -556,4 +474,4 @@ const CategoryExpenseTable = () => {
   return <MaterialReactTable table={table} />;
 }
 
-export default CategoryExpenseTable;
+export default CategoryTable;

@@ -4,8 +4,7 @@ import { useState } from 'react';
 import './styles/App.css';
 // import TransactionsTable from './components/TransactionsTable/TransactionsTable';
 import Dashboard from './components/Dashboard/Dashboard';
-import CategoryExpenseTable from './components/CategoryTable/CategoryExpenseTable';
-// import CategoryIncomeTable from './components/CategoryTable/CategoryIncomeTable';
+import CategoryTable from './components/CategoryTable/CategoryTable';
 import Statistics from './components/Statistics/Statistics';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
@@ -31,9 +30,10 @@ function BudgetTargetsView() {
   return (
     <div className="target-tables-container">
       <div className="expense-targets-table">
-        <CategoryExpenseTable />
+        <CategoryTable type="Expense"/>
       </div>
       <div className="income-targets-table">
+        <CategoryTable type="Income"/>
       </div>
     </div>
   );

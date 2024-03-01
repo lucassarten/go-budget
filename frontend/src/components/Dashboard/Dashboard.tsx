@@ -14,8 +14,9 @@ import {
   SelectChangeEvent,
   MenuItem,
 } from '@mui/material';
-import { Category, Transaction } from '../Types';
-import { Query } from "../../../wailsjs/go/main/Db";
+
+import { QueryCategories, QueryTransactions } from "../../../wailsjs/go/db/Db";
+import { db } from "../../../wailsjs/go/models";
 
 interface TimePeriod {
   startDate: Date;
@@ -44,8 +45,8 @@ interface IntervalSelectorProps {
 
 interface CategorySelectorProps {
   // eslint-disable-next-line no-unused-vars
-  onCategoryChange: (category: Category) => void;
-  categories: Category[];
+  onCategoryChange: (category: db.Category) => void;
+  categories: db.Category[];
 }
 
 const validateDate = (value: Date) => {
@@ -196,8 +197,8 @@ Chart.register(...registerables, ChartDataLabels, annotationPlugin);
 
 function categoryPieChart(
   type: string,
-  categories: Category[],
-  transactions: Transaction[]
+  categories: db.Category[],
+  transactions: db.Transaction[]
 ) {
   const categoriesPeriod = categories.filter((category) => {
     const categoryTransactions = transactions.filter(
@@ -263,7 +264,7 @@ function categoryPieChart(
   );
 }
 
-function IncomeEarningSavingsComparison(transactions: Transaction[]) {
+function IncomeEarningSavingsComparison(transactions: db.Transaction[]) {
   const income = transactions
     .filter((transaction) => transaction.amount > 0)
     .reduce((acc, transaction) => acc + transaction.amount, 0);
@@ -343,14 +344,14 @@ function IncomeEarningSavingsComparison(transactions: Transaction[]) {
  */
 function budgetComparisonBarChart(
   timePeriod: TimePeriod,
-  category: Category,
-  transactions: Transaction[],
+  category: db.Category,
+  transactions: db.Transaction[],
   type: string
 ) {
   // split all transactions into periods of time timePeriod long (e.g. 10 periods of 1 month each)
   const timePeriodLength =
     timePeriod.endDate.getTime() - timePeriod.startDate.getTime();
-  const periods: Transaction[][] = [];
+  const periods: db.Transaction[][] = [];
   for (let i = 0; i < 10; i += 1) {
     const periodStart = new Date(
       timePeriod.endDate.getTime() - timePeriodLength * (i + 1)
@@ -471,9 +472,9 @@ function CategorySelector({
   categories,
 }: CategorySelectorProps) {
   const [selectedOption, setSelectedOption] = useState(categories[0]);
-  const handleOptionChange = (event: SelectChangeEvent<Category>) => {
-    setSelectedOption(event.target.value as Category);
-    onCategoryChange(event.target.value as Category);
+  const handleOptionChange = (event: SelectChangeEvent<db.Category>) => {
+    setSelectedOption(event.target.value as db.Category);
+    onCategoryChange(event.target.value as db.Category);
   };
 
   useEffect(() => {
@@ -571,10 +572,10 @@ function IntervalSelector({ onIntervalChange }: IntervalSelectorProps) {
 }
 
 function Dashboard() {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [transactionsAll, setTransactionsAll] = useState<Transaction[]>([]);
-  const [categoriesIncome, setCategoriesIncome] = useState<Category[]>([]);
-  const [categoriesExpense, setCategoriesExpense] = useState<Category[]>([]);
+  const [transactions, setTransactions] = useState<db.Transaction[]>([]);
+  const [transactionsAll, setTransactionsAll] = useState<db.Transaction[]>([]);
+  const [categoriesIncome, setCategoriesIncome] = useState<db.Category[]>([]);
+  const [categoriesExpense, setCategoriesExpense] = useState<db.Category[]>([]);
   const [timePeriod, setTimePeriod] = useState<TimePeriod>({
     startDate: new Date(0),
     endDate: new Date(),
@@ -590,35 +591,38 @@ function Dashboard() {
     endDate: new Date(),
   });
   const [selectedCategoryExpense, setSelectedCategoryExpense] =
-    useState<Category>();
+    useState<db.Category>();
   const [selectedCategoryIncome, setSelectedCategoryIncome] =
-    useState<Category>();
+    useState<db.Category>();
 
   useEffect(() => {
     // get transactions from db between time period
-    Query(`SELECT * FROM Transactions`, []).then((resp) => {
-      const response = resp as Transaction[];
-      setTransactionsAll(response);
-      // filter out transactions that are not in the time period
-      const filteredTransactions = response.filter((transaction) => {
-        const transactionDate = new Date(transaction.date);
-        return (
-          transactionDate >= timePeriod.startDate &&
-          transactionDate <= timePeriod.endDate
-        );
-      });
-      setTransactions(filteredTransactions);
+    QueryTransactions(`SELECT * FROM Transactions`, []).then((resp: db.Transaction[]) => {
+      setTransactionsAll(resp);
+      if (resp != null && resp.length > 0) {
+        // filter out transactions that are not in the time period
+        const filteredTransactions = resp.filter((transaction) => {
+          const transactionDate = new Date(transaction.date);
+          return (
+            transactionDate >= timePeriod.startDate &&
+            transactionDate <= timePeriod.endDate
+          );
+        });
+        setTransactions(filteredTransactions);
+      }
     });
     // get categories from db
-    Query(`SELECT * FROM CategoriesExpense`, []).then((resp) => {
-      const response = resp as Category[];
-      setSelectedCategoryExpense(response[0]);
-      setCategoriesExpense(response);
+    QueryCategories(`SELECT * FROM CategoriesExpense`, []).then((resp: db.Category[]) => {
+      if (resp != null && resp.length > 0) {
+        setSelectedCategoryExpense(resp[0]);
+        setCategoriesExpense(resp);
+      }
     });
-    Query(`SELECT * FROM CategoriesIncome`, []).then((resp) => {
-      const response = resp as Category[];
-      setSelectedCategoryIncome(response[0]);
-      setCategoriesIncome(response);
+    QueryCategories(`SELECT * FROM CategoriesIncome`, []).then((resp: db.Category[]) => {
+      if (resp != null && resp.length > 0) {
+        setSelectedCategoryIncome(resp[0]);
+        setCategoriesIncome(resp);
+      }
     });
   }, [timePeriod]);
 

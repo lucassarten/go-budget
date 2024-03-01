@@ -9,6 +9,8 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 	"github.com/wailsapp/wails/v2/pkg/options/linux"
+
+	"go-budget/internal/db"
 )
 
 //go:embed all:frontend/dist
@@ -18,7 +20,7 @@ func main() {
 	// Create an instance of the app structure
 	app := NewApp()
 	// Create an instance of the db structure
-	db := NewDb("./user.db")
+	db := db.NewDb("./user.db")
 
 	// Create application with options
 	err := wails.Run(&options.App{
@@ -32,10 +34,10 @@ func main() {
 			Assets: assets,
 		},
 		BackgroundColour: &options.RGBA{R: 0, G: 0, B: 0, A: 1},
-		OnStartup:        db.startup,
+		OnStartup:        db.Startup,
 		OnDomReady:       app.domready,
 		OnShutdown:       app.shutdown,
-		OnBeforeClose:    db.beforeClose,
+		OnBeforeClose:    db.BeforeClose,
 		Bind: []interface{}{
 			app,
 			db,

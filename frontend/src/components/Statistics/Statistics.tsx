@@ -16,7 +16,8 @@ import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
-import { Category, Transaction } from '../Types';
+
+import { db } from "../../../wailsjs/go/models";
 
 interface TimePeriod {
   startDate: Date;
@@ -181,7 +182,7 @@ function TimePeriodSelector({ onTimePeriodChange }: TimePeriodSelectorProps) {
 }
 
 function StatisticsSummary(
-  transactions: Transaction[],
+  transactions: db.Transaction[],
   timePeriod: TimePeriod
 ) {
   // table displaying the total income, expenses and savings
@@ -344,9 +345,9 @@ function StatisticsSummary(
 
 // same table as StatisticsSummary but for every category
 function StatisticsByCategory(
-  transactions: Transaction[],
+  transactions: db.Transaction[],
   timePeriod: TimePeriod,
-  categories: Category[],
+  categories: db.Category[],
   type: string
 ) {
   // get same stats for the previous period
@@ -357,8 +358,8 @@ function StatisticsByCategory(
     endDate: new Date(timePeriod.endDate.getTime() - timePeriodLength),
   };
   // define Transaction[]
-  let transactionsCurrent: Transaction[];
-  let transactionsPrevious: Transaction[];
+  let transactionsCurrent: db.Transaction[];
+  let transactionsPrevious: db.Transaction[];
   if (type === 'Expense') {
     transactionsCurrent = transactions.filter(
       (transaction) =>
@@ -472,9 +473,9 @@ function StatisticsByCategory(
 }
 
 function Statistics() {
-  const [transactionsAll, setTransactionsAll] = useState<Transaction[]>([]);
-  const [categoriesIncome, setCategoriesIncome] = useState<Category[]>([]);
-  const [categoriesExpense, setCategoriesExpense] = useState<Category[]>([]);
+  const [transactionsAll, setTransactionsAll] = useState<db.Transaction[]>([]);
+  const [categoriesIncome, setCategoriesIncome] = useState<db.Category[]>([]);
+  const [categoriesExpense, setCategoriesExpense] = useState<db.Category[]>([]);
   const [timePeriod, setTimePeriod] = useState<TimePeriod>({
     startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
     endDate: new Date(),

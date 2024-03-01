@@ -1,17 +1,10 @@
 // import { parse } from "csv-parse";
-// import { Query } from "../../../wailsjs/go/main/Db";
-
-// const fs = require("fs");
+// import { Exec } from "../wailsjs/go/db/Db";
 
 // // specific references to ignore, these are transfers between my own accounts for example, these rows are dropped
 // const ignore = "Tf To|Tf Fr|T/f from|T/f to|TRANSFER|TRANSFER";
 // // specific phrases to remove, these rows aren't dropped just cleaned for the below strings
 // const remove = ";Ref:|;Particulars:|;Balance:|;";
-
-// interface DarwinMenuItemConstructorOptions extends MenuItemConstructorOptions {
-//   selector?: string;
-//   submenu?: DarwinMenuItemConstructorOptions[] | Menu;
-// }
 
 // function importFile(fileName: string, type: string) {
 //   // read file contents
@@ -323,4 +316,4 @@
 //   }
 // }
 
-export {}
+// export {};
