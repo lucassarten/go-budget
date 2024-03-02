@@ -2,7 +2,7 @@
 /* eslint-disable promise/catch-or-return */
 /* eslint-disable no-nested-ternary */
 /* eslint-disable camelcase */
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useReducer, useState } from 'react';
 import {
   MaterialReactTable,
   useMaterialReactTable,
@@ -14,13 +14,13 @@ import {
 } from 'material-react-table';
 import {
   Box,
-  Button,
   DialogActions,
   DialogContent,
   DialogTitle,
   IconButton,
   Tooltip,
 } from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
 import {
   useMutation,
   useQuery,
@@ -28,9 +28,14 @@ import {
 } from '@tanstack/react-query';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import debounce from 'lodash.debounce'
 
 import { Exec, QueryCategories } from "../../../wailsjs/go/db/Db";
 import { db } from "../../../wailsjs/go/models";
+
+import './CategoryTable.css';
+
+// validation functions
 
 const validateRequired = (value: string) => !!value.length;
 
@@ -62,6 +67,8 @@ function validateCategory(category: db.Category) {
     colour: !validateColour(category.colour) ? 'Colour must be a valid hex code' : '',
   };
 }
+
+// database management functions
 
 function useCreateCategory(type: string){
   const queryClient = useQueryClient();
@@ -137,8 +144,46 @@ function useDeleteCategory(type: string){
   });
 }
 
+
+type ValidationErrors = {
+  name?: string;
+  target?: string;
+  colour?: string;
+};
+
+type ValidationAction = Partial<ValidationErrors>;
+
 const CategoryTable = ({ type }: { type: string }) => {
-  const [validationErrors, setValidationErrors] = useState<Record<string, string | undefined>>({});
+  const [validationErrors, dispatchValidationErrors] = useReducer(
+    (state: ValidationErrors, action: ValidationAction) => ({ ...state, ...action }),
+    {}
+  );
+
+  // validation handlers
+
+  const handleNameChange = debounce(useCallback((event: { target: { value: string; }; }) => {
+    const isValid = validateRequired(event.target.value);
+
+    dispatchValidationErrors({
+       name: isValid ? undefined : 'Name is required',
+    });
+  }, [validateRequired]), 500);
+ 
+  const handleTargetChange = debounce(useCallback((event: { target: { value: string; }; }) => {
+    const isValid = validateAmount(event.target.value);
+
+    dispatchValidationErrors({
+      target: isValid ? undefined : 'Target must be a positive number',
+    });
+  }, [validateAmount]), 500);
+ 
+  const handleColourChange = debounce(useCallback((event: { target: { value: string; }; }) => {
+    const isValid = validateColour(event.target.value);
+
+    dispatchValidationErrors({
+      colour: isValid ? undefined : 'Colour must be a valid hex code',
+    });
+  }, [validateColour]), 500);
 
   const columns = useMemo<MRT_ColumnDef<db.Category>[]>(
     () => [
@@ -153,40 +198,12 @@ const CategoryTable = ({ type }: { type: string }) => {
           helperText: validationErrors?.name,
           //remove any previous validation errors when user focuses on the input
           onFocus: () =>
-            setValidationErrors({
-              ...validationErrors,
+            dispatchValidationErrors({
               name: undefined,
-            }),
+          }),
           // validate on change
-          onChange: (event: { target: { value: string; }; }) => {
-            const isValid = validateRequired(event.target.value);
-            if (!isValid) {
-              setValidationErrors({
-                ...validationErrors,
-                name: 'Name is required',
-              });
-            } else {
-              setValidationErrors({
-                ...validationErrors,
-                name: undefined,
-              });
-            }
-          },
-          // validate on blur
-          onBlur: (event: { target: { value: string; }; }) => {
-            const isValid = validateRequired(event.target.value);
-            if (!isValid) {
-              setValidationErrors({
-                ...validationErrors,
-                name: 'Name is required',
-              });
-            } else {
-              setValidationErrors({
-                ...validationErrors,
-                name: undefined,
-              });
-            }
-          }
+          onChange: handleNameChange,
+          onBlur: handleNameChange,
         },
       },
       {
@@ -199,42 +216,14 @@ const CategoryTable = ({ type }: { type: string }) => {
           required: true,
           error: !!validationErrors?.target,
           helperText: validationErrors?.target,
-          //remove any previous validation errors when user focuses on the input
+          // remove any previous validation errors when user focuses on the input
           onFocus: () =>
-            setValidationErrors({
-              ...validationErrors,
+            dispatchValidationErrors({
               target: undefined,
-            }),
+          }),
           // validate on change
-          onChange: (event: { target: { value: string; }; }) => {
-            const isValid = validateAmount(event.target.value);
-            if (!isValid) {
-              setValidationErrors({
-                ...validationErrors,
-                target: 'Target must be a positive number',
-              });
-            } else {
-              setValidationErrors({
-                ...validationErrors,
-                target: undefined,
-              });
-            }
-          },
-          // validate on blur
-          onBlur: (event: { target: { value: string; }; }) => {
-            const isValid = validateAmount(event.target.value);
-            if (!isValid) {
-              setValidationErrors({
-                ...validationErrors,
-                target: 'Target must be a positive number',
-              });
-            } else {
-              setValidationErrors({
-                ...validationErrors,
-                target: undefined,
-              });
-            }
-          }
+          onChange: handleTargetChange,
+          onBlur: handleTargetChange,
         },
       },
       {
@@ -257,42 +246,14 @@ const CategoryTable = ({ type }: { type: string }) => {
           required: true,
           error: !!validationErrors?.colour,
           helperText: validationErrors?.colour,
-          //remove any previous validation errors when user focuses on the input
+          // remove any previous validation errors when user focuses on the input
           onFocus: () =>
-            setValidationErrors({
-              ...validationErrors,
+            dispatchValidationErrors({
               colour: undefined,
-            }),
+          }),
           // validate on change
-          onChange: (event: { target: { value: string; }; }) => {
-            const isValid = validateColour(event.target.value);
-            if (!isValid) {
-              setValidationErrors({
-                ...validationErrors,
-                colour: 'Colour must be a valid hex code',
-              });
-            } else {
-              setValidationErrors({
-                ...validationErrors,
-                colour: undefined,
-              });
-            }
-          },
-          // validate on blur
-          onBlur: (event: { target: { value: string; }; }) => {
-            const isValid = validateColour(event.target.value);
-            if (!isValid) {
-              setValidationErrors({
-                ...validationErrors,
-                colour: 'Colour must be a valid hex code',
-              });
-            } else {
-              setValidationErrors({
-                ...validationErrors,
-                colour: undefined,
-              });
-            }
-          }
+          onChange: handleColourChange,
+          onBlur: handleColourChange,
         },
       },
     ],
@@ -320,12 +281,46 @@ const CategoryTable = ({ type }: { type: string }) => {
   }) => {
     const newValidationErrors = validateCategory(values);
     if (Object.values(newValidationErrors).some((error) => error)) {
-      setValidationErrors(newValidationErrors);
+      dispatchValidationErrors(newValidationErrors);
       return;
     }
-    setValidationErrors({});
+    dispatchValidationErrors({
+      name: undefined,
+      target: undefined,
+      colour: undefined,
+    });
     await createCategory(values);
     table.setCreatingRow(false);
+  }
+
+  const handleCreatingRow = (table: any) => {
+    table.setCreatingRow(true);
+    dispatchValidationErrors({
+      name: undefined,
+      target: undefined,
+      colour: undefined,
+    });
+    table.setCreatingRow(
+      createRow(table, {
+        name: 'category',
+        target: 0,
+        colour: '#'+Math.floor(Math.random()*16777215).toString(16),
+      }),
+    );
+    // scroll to top of table
+    document.querySelector('.MuiTableContainer-root')?.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    });
+  }
+
+  const handleEditingRow = (table: any, row: MRT_Row<db.Category>) => {
+    dispatchValidationErrors({
+      name: undefined,
+      target: undefined,
+      colour: undefined,
+    });
+    table.setEditingRow(row);
   }
 
   const openDeleteConfirmModal = (row: MRT_Row<db.Category>) => {
@@ -343,10 +338,14 @@ const CategoryTable = ({ type }: { type: string }) => {
   }) => {
     const newValidationErrors = validateCategory(values);
     if (Object.values(newValidationErrors).some((error) => error)) {
-      setValidationErrors(newValidationErrors);
+      dispatchValidationErrors(newValidationErrors);
       return;
     }
-    setValidationErrors({});
+    dispatchValidationErrors({
+      name: undefined,
+      target: undefined,
+      colour: undefined,
+    });
     await updateCategory(values);
     table.setEditingRow(null);
   };
@@ -376,28 +375,18 @@ const CategoryTable = ({ type }: { type: string }) => {
         maxHeight: 'calc(100vh - 121px)',
       }
     },
-    onCreatingRowCancel: () => setValidationErrors({}),
+    onCreatingRowCancel: () => dispatchValidationErrors({
+      name: undefined,
+      target: undefined,
+      colour: undefined,
+    }),
     onCreatingRowSave: handleCreateCategory,
-    onEditingRowCancel: () => setValidationErrors({}),
+    onEditingRowCancel: () => dispatchValidationErrors({
+      name: undefined,
+      target: undefined,
+      colour: undefined,
+    }),
     onEditingRowSave: handleSaveCategory,
-    renderCreateRowDialogContent: useCallback<
-      Required<MRT_TableOptions<db.Category>>['renderCreateRowDialogContent']
-    >(
-      ({ table, row, internalEditComponents }) => 
-      <>
-        <DialogTitle variant="h3">Add Category</DialogTitle>
-        <DialogContent
-          sx={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
-        >
-          {internalEditComponents} {/* or render custom edit components here */}
-        </DialogContent>
-        <DialogActions>
-          <MRT_EditActionButtons variant="text" table={table} row={row} />
-        </DialogActions>
-      </>,
-      [],
-    ),
-    //optionally customize modal content
     renderEditRowDialogContent: useCallback<
       Required<MRT_TableOptions<db.Category>>['renderEditRowDialogContent']
     >( 
@@ -421,7 +410,7 @@ const CategoryTable = ({ type }: { type: string }) => {
       ({ row, table }) =>
       <Box sx={{ display: 'flex', gap: '1rem' }}>
         <Tooltip title="Edit">
-          <IconButton onClick={() => table.setEditingRow(row)}>
+          <IconButton onClick={() => handleEditingRow(table, row)}>
             <EditIcon />
           </IconButton>
         </Tooltip>
@@ -437,30 +426,14 @@ const CategoryTable = ({ type }: { type: string }) => {
     Required<MRT_TableOptions<db.Category>>['renderTopToolbarCustomActions']
     >( 
       ({ table }) => 
-      <span className="table-top-toolbar-container">
-        <Button
-          className="button-add-category"
-          variant="contained"
-          onClick={() => {
-            table.setCreatingRow(true);
-            table.setCreatingRow(
-              createRow(table, {
-                name: 'category',
-                target: 0,
-                colour: '#'+Math.floor(Math.random()*16777215).toString(16),
-              }),
-            );
-            // scroll to top of table
-            document.querySelector('.MuiTableContainer-root')?.scrollTo({
-              top: 0,
-              behavior: 'smooth',
-            });
-          }}
-        >
-          Add
-        </Button>
+      <div className="table-top-toolbar-container">
+        <div onClick={ () => handleCreatingRow(table) }>
+        <IconButton>
+          <AddIcon />
+        </IconButton>
+        </div>
         <h2>{type}</h2>
-      </span>,
+      </div>,
       [],
     ),
     state: {

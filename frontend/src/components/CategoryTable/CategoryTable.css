@@ -23,36 +23,9 @@
   border: 5px solid var(--income-border);
 }
 
-.button-add-category {
-  width: 100px;
-}
-
-.button-delete-category {
-  width: 100px;
-}
-
-.button-delete-category:disabled:hover {
-  transform: none;
-  cursor: default;
-}
-
-.add-category-form {
+.table-top-toolbar-container {
   display: flex;
-  flex-direction: column;
-  margin-top: 10px;
-}
-
-.button-add-category {
-  color: var(--button-text-color);
-  background-color: var(--button-add-category);
-}
-
-.button-delete-category:disabled {
-  color: var(--button-text-color);
-  background-color: var(--button-delete-category-disabled);
-}
-
-.button-delete-category {
-  color: var(--button-text-color);
-  background-color: var(--button-delete-category);
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
 }
