@@ -4,7 +4,7 @@
   grid-template-rows: 80px 1fr;
   position: absolute;
   width: calc(100% - 10px);
-  height: calc(100% - 51px);
+  height: calc(100vh - 54px);
   border: 5px solid var(--dashboard-border);
 }
 

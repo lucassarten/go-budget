@@ -1,50 +1,16 @@
 .transactions-table-Expense {
   width: calc(100% - 10px);
-  height: calc(100% - 50px);
+  height: calc(100vh - 54px);
   border: 5px solid var(--expense-border);
 }
 
 .transactions-table-Income {
   width: calc(100% - 10px);
-  height: calc(100% - 50px);
+  height: calc(100vh - 54px);
   border: 5px solid var(--income-border);
 }
 
 .table-top-toolbar-container {
   display: flex;
   gap: 5px;
-}
-
-.button-add-transaction {
-  width: 100px;
-}
-
-.button-delete-transaction {
-  width: 100px;
-}
-
-.button-delete-transaction:disabled:hover {
-  transform: none;
-  cursor: default;
-}
-
-.add-transaction-form {
-  display: flex;
-  flex-direction: column;
-  margin-top: 10px;
-}
-
-.button-add-transaction {
-  color: var(--button-text-color);
-  background-color: var(--button-add-transaction);
-}
-
-.button-delete-transaction:disabled {
-  color: var(--button-text-color);
-  background-color: var(--button-delete-transaction-disabled);
-}
-
-.button-delete-transaction {
-  color: var(--button-text-color);
-  background-color: var(--button-delete-transaction);
 }

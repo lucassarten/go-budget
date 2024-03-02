@@ -252,7 +252,12 @@ function categoryPieChart(
             align: 'center',
             color: 'white',
             clip: false,
-            formatter: (value) => `$${Math.round(value)}`,
+            formatter: (value) => {
+              if (value < 0) {
+                return `-$${Math.abs(value)}`;
+              }
+              return `$${Math.round(value)}`;
+            },
             font: {
               weight: 'bold',
               size: 16,
@@ -284,7 +289,7 @@ function IncomeEarningSavingsComparison(transactions: db.Transaction[]) {
           },
           {
             label: 'Expenses',
-            data: [expenses],
+            data: [-expenses],
             backgroundColor: 'red',
             barPercentage: 0.9,
           },

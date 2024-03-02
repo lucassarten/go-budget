@@ -5,6 +5,7 @@ import './styles/App.css';
 // import TransactionsTable from './components/TransactionsTable/TransactionsTable';
 import Dashboard from './components/Dashboard/Dashboard';
 import CategoryTable from './components/CategoryTable/CategoryTable';
+import TransactionsTable from './components/TransactionsTable/TransactionsTable';
 import Statistics from './components/Statistics/Statistics';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
@@ -18,13 +19,25 @@ function StatisticsView() {
   return <Statistics />;
 }
 
-// function IncomeView() {
-//   return <TransactionsTable type="Income" />;
-// }
+function IncomeView() {
+  return (
+    <div className="transactions-tables-container">
+      <div className="transactions-table-Income">
+        <TransactionsTable type="Income" />;
+      </div>
+    </div>
+  );
+}
 
-// function ExpensesView() {
-//   return <TransactionsTable type="Expense" />;
-// }
+function ExpensesView() {
+  return (
+    <div className="transactions-tables-container">
+      <div className="transactions-table-Expense">
+        <TransactionsTable type="Expense" />;
+      </div>
+    </div>
+  );
+}
 
 function BudgetTargetsView() {
   return (
@@ -99,8 +112,8 @@ function MainLayout() {
 
       {activeTab === 'dashboard' && <DashboardView />}
       {activeTab === 'statistics' && <StatisticsView />}
-      {/* {activeTab === 'expenses' && <ExpensesView />}
-      {activeTab === 'income' && <IncomeView />} */}
+      {activeTab === 'expenses' && <ExpensesView />}
+      {activeTab === 'income' && <IncomeView />}
       {activeTab === 'budgetTargets' && <BudgetTargetsView />}
     </div>
   );

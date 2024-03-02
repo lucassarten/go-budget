@@ -2,7 +2,7 @@
 /* eslint-disable promise/catch-or-return */
 /* eslint-disable no-nested-ternary */
 /* eslint-disable camelcase */
-import { useCallback, useMemo, useReducer, useState } from 'react';
+import { useCallback, useMemo, useReducer } from 'react';
 import {
   MaterialReactTable,
   useMaterialReactTable,
@@ -21,13 +21,13 @@ import {
   Tooltip,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
 import {
   useMutation,
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
 import debounce from 'lodash.debounce'
 
 import { Exec, QueryCategories } from "../../../wailsjs/go/db/Db";
@@ -108,13 +108,12 @@ function useUpdateCategory(type: string){
   return useMutation({
     mutationFn: async (category: db.Category) => {
       // update row in db
-      console.log("attempting to update categories")
       return await Exec(
         `UPDATE Categories${type} SET name = ?, target = ?, colour = ? WHERE name = ?`, 
         [category.name, category.target, category.colour, category.name]
       );
     },
-    //client side optimistic update
+    // client side optimistic update
     onMutate: (newCategoryInfo: db.Category) => {
       queryClient.setQueryData(['categories'+type], (prevCategories: any) =>
         prevCategories?.map((prevCategory: db.Category) =>
@@ -131,7 +130,6 @@ function useDeleteCategory(type: string){
   return useMutation({
     mutationFn: async (name: string) => {
       // update row in db
-      console.log("attempting to delete category from db")
       return await Exec(`DELETE FROM Categories${type} WHERE name = ?`, [name]);
     },
     // client side optimistic update
@@ -143,7 +141,6 @@ function useDeleteCategory(type: string){
     onSettled: () => queryClient.invalidateQueries({ queryKey: ['categories'+type] }),
   });
 }
-
 
 type ValidationErrors = {
   name?: string;
@@ -185,89 +182,15 @@ const CategoryTable = ({ type }: { type: string }) => {
     });
   }, [validateColour]), 500);
 
-  const columns = useMemo<MRT_ColumnDef<db.Category>[]>(
-    () => [
-      {
-        accessorKey: 'name',
-        header: 'name',
-        size: 100,
-        // date picker
-        muiEditTextFieldProps: {
-          required: true,
-          error: !!validationErrors?.name,
-          helperText: validationErrors?.name,
-          //remove any previous validation errors when user focuses on the input
-          onFocus: () =>
-            dispatchValidationErrors({
-              name: undefined,
-          }),
-          // validate on change
-          onChange: handleNameChange,
-          onBlur: handleNameChange,
-        },
-      },
-      {
-        accessorKey: 'target',
-        header: 'target',
-        size: 50,
-        // format as currency
-        Cell: ({ cell }) => formatCurrency(cell.getValue() as number),
-        muiEditTextFieldProps: {
-          required: true,
-          error: !!validationErrors?.target,
-          helperText: validationErrors?.target,
-          // remove any previous validation errors when user focuses on the input
-          onFocus: () =>
-            dispatchValidationErrors({
-              target: undefined,
-          }),
-          // validate on change
-          onChange: handleTargetChange,
-          onBlur: handleTargetChange,
-        },
-      },
-      {
-        accessorKey: 'colour',
-        header: 'colour',
-        size: 50,
-        // Set cell background colour to cell value
-        Cell: ({ cell }) => (
-          <div
-            style={{
-              backgroundColor: String(cell.getValue()),
-              width: '100%',
-              height: '100%',
-            }}
-          >
-            {cell.getValue() as React.ReactNode}
-          </div>
-        ),
-        muiEditTextFieldProps: {
-          required: true,
-          error: !!validationErrors?.colour,
-          helperText: validationErrors?.colour,
-          // remove any previous validation errors when user focuses on the input
-          onFocus: () =>
-            dispatchValidationErrors({
-              colour: undefined,
-          }),
-          // validate on change
-          onChange: handleColourChange,
-          onBlur: handleColourChange,
-        },
-      },
-    ],
-    [validationErrors],
-  );
 
   // hooks
-  const { mutateAsync: createCategory, isPending: isCreatingCategory } = useCreateCategory(type);
   const {
     data: fetchedCategories = [],
     isError: isLoadingCategoriesError,
     isFetching: isFetchingCategories,
     isLoading: isLoadingCategories,
   } = useGetCategories(type);
+  const { mutateAsync: createCategory, isPending: isCreatingCategory } = useCreateCategory(type);
   const { mutateAsync: updateCategory, isPending: isUpdatingCategory } = useUpdateCategory(type);
   const  { mutateAsync: deleteCategory, isPending: isDeletingCategory } = useDeleteCategory(type);
 
@@ -302,7 +225,7 @@ const CategoryTable = ({ type }: { type: string }) => {
     });
     table.setCreatingRow(
       createRow(table, {
-        name: 'category',
+        name: '',
         target: 0,
         colour: '#'+Math.floor(Math.random()*16777215).toString(16),
       }),
@@ -349,6 +272,80 @@ const CategoryTable = ({ type }: { type: string }) => {
     await updateCategory(values);
     table.setEditingRow(null);
   };
+
+  const columns = useMemo<MRT_ColumnDef<db.Category>[]>(
+    () => [
+      {
+        accessorKey: 'name',
+        header: 'Name',
+        size: 100,
+        muiEditTextFieldProps: {
+          required: true,
+          error: !!validationErrors?.name,
+          helperText: validationErrors?.name,
+          //remove any previous validation errors when user focuses on the input
+          onFocus: () =>
+            dispatchValidationErrors({
+              name: undefined,
+          }),
+          // validate on change
+          onChange: handleNameChange,
+          onBlur: handleNameChange,
+        },
+      },
+      {
+        accessorKey: 'target',
+        header: 'Target',
+        size: 50,
+        // format as currency
+        Cell: ({ cell }) => formatCurrency(cell.getValue() as number),
+        muiEditTextFieldProps: {
+          required: true,
+          error: !!validationErrors?.target,
+          helperText: validationErrors?.target,
+          // remove any previous validation errors when user focuses on the input
+          onFocus: () =>
+            dispatchValidationErrors({
+              target: undefined,
+          }),
+          // validate on change
+          onChange: handleTargetChange,
+          onBlur: handleTargetChange,
+        },
+      },
+      {
+        accessorKey: 'colour',
+        header: 'Colour',
+        size: 50,
+        // Set cell background colour to cell value
+        Cell: ({ cell }) => (
+          <div
+            style={{
+              backgroundColor: String(cell.getValue()),
+              width: '100%',
+              height: '100%',
+            }}
+          >
+            {cell.getValue() as React.ReactNode}
+          </div>
+        ),
+        muiEditTextFieldProps: {
+          required: true,
+          error: !!validationErrors?.colour,
+          helperText: validationErrors?.colour,
+          // remove any previous validation errors when user focuses on the input
+          onFocus: () =>
+            dispatchValidationErrors({
+              colour: undefined,
+          }),
+          // validate on change
+          onChange: handleColourChange,
+          onBlur: handleColourChange,
+        },
+      },
+    ],
+    [validationErrors],
+  );
 
   const table = useMaterialReactTable<db.Category>({
     columns,

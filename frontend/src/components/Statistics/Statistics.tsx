@@ -17,6 +17,7 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 
+import { QueryCategories, QueryTransactions } from "../../../wailsjs/go/db/Db";
 import { db } from "../../../wailsjs/go/models";
 
 interface TimePeriod {
@@ -391,7 +392,7 @@ function StatisticsByCategory(
   return (
     <div className={`statistics-summary-${type}`}>
       <Paper sx={{ overflow: 'hidden' }}>
-        <TableContainer sx={{ maxHeight: 'calc(100vh - 411px)' }}>
+        <TableContainer sx={{ maxHeight: 'calc(100vh - 414px)' }}>
           <Table stickyHeader aria-label="statistics-summary-table">
             <TableHead>
               <TableRow>
@@ -482,32 +483,16 @@ function Statistics() {
   });
   useEffect(() => {
     // get transactions from db between time period
-    // window.electron.ipcRenderer.once('db-query-transactions', (resp) => {
-    //   const response = resp as Transaction[];
-    //   setTransactionsAll(response);
-    // });
-    // window.electron.ipcRenderer.once('db-query-categories-expense', (resp) => {
-    //   const response = resp as Category[];
-    //   setCategoriesExpense(response);
-    // });
-    // window.electron.ipcRenderer.once('db-query-categories-income', (resp) => {
-    //   const response = resp as Category[];
-    //   setCategoriesIncome(response);
-    // });
-    // // get categories from db
-    // window.electron.ipcRenderer.sendMessage('db-query', [
-    //   'db-query-categories-expense',
-    //   `SELECT * FROM CategoriesExpense`,
-    // ]);
-    // window.electron.ipcRenderer.sendMessage('db-query', [
-    //   'db-query-categories-income',
-    //   `SELECT * FROM CategoriesIncome`,
-    // ]);
-    // // get transactions from db between time period
-    // window.electron.ipcRenderer.sendMessage('db-query', [
-    //   'db-query-transactions',
-    //   `SELECT * FROM Transactions`,
-    // ]);
+    QueryTransactions("SELECT * FROM Transactions", []).then((response: db.Transaction[]) => {
+      setTransactionsAll(response);
+    });
+    // get categories from db
+    QueryCategories("SELECT * FROM CategoriesIncome", []).then((response: db.Category[]) => {
+      setCategoriesIncome(response);
+    });
+    QueryCategories("SELECT * FROM CategoriesExpense", []).then((response: db.Category[]) => {
+      setCategoriesExpense(response);
+    });
   }, [timePeriod]);
   if (timePeriod === undefined || transactionsAll === undefined) {
     return <div>Loading...</div>;

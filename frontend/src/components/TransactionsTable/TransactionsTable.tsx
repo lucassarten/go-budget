@@ -1,478 +1,529 @@
-// /* eslint-disable promise/always-return */
-// /* eslint-disable promise/catch-or-return */
-// /* eslint-disable no-nested-ternary */
-// /* eslint-disable camelcase */
-// import { useCallback, useEffect, useMemo, useState } from 'react';
-// import MaterialReactTable, {
-//   MRT_Cell,
-//   MRT_ColumnDef,
-//   MRT_RowSelectionState,
-// } from 'material-react-table';
-// import {
-//   Button,
-//   Dialog,
-//   DialogActions,
-//   DialogContent,
-//   DialogTitle,
-//   MenuItem,
-//   Stack,
-//   TextField,
-// } from '@mui/material';
+/* eslint-disable promise/always-return */
+/* eslint-disable promise/catch-or-return */
+/* eslint-disable no-nested-ternary */
+/* eslint-disable camelcase */
+import { useCallback, useMemo, useReducer } from 'react';
+import {
+MaterialReactTable,
+useMaterialReactTable,
+MRT_EditActionButtons,
+type MRT_ColumnDef,
+type MRT_TableOptions,
+type MRT_Row,
+createRow,
+} from 'material-react-table';
+import {
+  Box,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  IconButton,
+  Tooltip,
+  MenuItem,
+} from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
+import debounce from 'lodash.debounce'
 
-// import { buttonStyleAdd, buttonStyleCancel } from '../../styles/MUI';
+import { Exec, QueryTransactions, QueryCategories } from "../../../wailsjs/go/db/Db";
+import { db } from "../../../wailsjs/go/models";
 
-// import { Category, Transaction } from '../Types';
-// import { Query } from "../../../wailsjs/go/main/Db";
+// validation functions
 
-// const formatCurrency = (value: number) => {
-//   const formatter = new Intl.NumberFormat('en-US', {
-//     style: 'currency',
-//     currency: 'NZD',
-//     currencyDisplay: 'symbol',
-//   });
-//   return formatter.format(value);
-// };
-// const formatDate = (value: string) => {
-//   const date = new Date(value);
-//   return date.toLocaleDateString('en-NZ', {
-//     year: 'numeric',
-//     month: 'numeric',
-//     day: 'numeric',
-//   });
-// };
-// const validateRequired = (value: string) => !!value.length;
-// const validateDate = (value: string) => {
-//   const date = new Date(value);
-//   return !Number.isNaN(date.getTime());
-// };
-// const validateAmount = (value: string) => {
-//   const number = Number(value);
-//   return !Number.isNaN(number);
-// };
-// const validateCategory = (value: string, categories: Category[]) => {
-//   const category = categories.find((c) => c.name === value);
-//   return !!category;
-// };
+const formatCurrency = (value: number) => {
+  const formatter = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'NZD',
+    currencyDisplay: 'symbol',
+  });
+  return formatter.format(value);
+};
 
-// interface CreateModalProps {
-//   columns: MRT_ColumnDef<Transaction>[];
-//   onClose: () => void;
-//   // eslint-disable-next-line no-unused-vars
-//   onSubmit: (values: Transaction) => void;
-//   open: boolean;
-//   categories: Category[];
-//   type: string;
-// }
+const formatDate = (value: string) => {
+  const date = new Date(value);
+  return date.toLocaleDateString('en-NZ', {
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+  });
+};
 
-// export function AddTransactionModal({
-//   open,
-//   columns,
-//   onClose,
-//   onSubmit,
-//   categories,
-//   type,
-// }: CreateModalProps) {
-//   const [values, setValues] = useState<any>(() =>
-//     columns.reduce((acc, column) => {
-//       acc[column.accessorKey ?? ''] = '';
-//       return acc;
-//     }, {} as any)
-//   );
+const validateRequired = (value: string) => !!value.length;
 
-//   const handleSubmit = () => {
-//     // put your validation logic here
-//     onSubmit(values);
-//     onClose();
-//   };
+const validateDate = (value: string) => {
+  const date = new Date(value);
+  return !Number.isNaN(date.getTime());
+};
 
-//   return (
-//     <Dialog open={open}>
-//       <DialogTitle textAlign="center">Add {type}</DialogTitle>
-//       <DialogContent>
-//         <form
-//           onSubmit={(e) => e.preventDefault()}
-//           className="add-transaction-form"
-//         >
-//           <Stack
-//             sx={{
-//               width: '100%',
-//               minWidth: { xs: '300px', sm: '360px', md: '400px' },
-//               gap: '1.5rem',
-//             }}
-//           >
-//             {
-//               // date picker
-//               columns.slice(1, 2).map((column) => (
-//                 // date picker
-//                 <TextField
-//                   key={column.accessorKey}
-//                   label={column.header}
-//                   name={column.accessorKey}
-//                   onChange={(e) =>
-//                     setValues({ ...values, [e.target.name]: e.target.value })
-//                   }
-//                   type="date"
-//                   required
-//                   error={!validateDate(values.date)}
-//                   InputLabelProps={{
-//                     shrink: true,
-//                   }}
-//                 />
-//               ))
-//             }
-//             {columns.slice(2, 3).map((column) => (
-//               <TextField
-//                 key={column.accessorKey}
-//                 label={column.header}
-//                 name={column.accessorKey}
-//                 onChange={(e) =>
-//                   setValues({ ...values, [e.target.name]: e.target.value })
-//                 }
-//                 required
-//                 error={!validateRequired(values.description)}
-//               />
-//             ))}
-//             {columns.slice(3, 4).map((column) => (
-//               <TextField
-//                 key={column.accessorKey}
-//                 label={column.header}
-//                 name={column.accessorKey}
-//                 onChange={(e) =>
-//                   setValues({ ...values, [e.target.name]: e.target.value })
-//                 }
-//                 required
-//                 error={
-//                   !validateAmount(values.amount) ||
-//                   !validateRequired(values.amount)
-//                 }
-//                 helperText={
-//                   !validateAmount(values.amount)
-//                     ? `${column.accessorKey} must be a number`
-//                     : ''
-//                 }
-//               />
-//             ))}
-//             {columns.slice(4).map((column) => (
-//               <TextField
-//                 key={column.accessorKey}
-//                 label={column.header}
-//                 name={column.accessorKey}
-//                 onChange={(e) =>
-//                   setValues({ ...values, [e.target.name]: e.target.value })
-//                 }
-//                 select
-//                 defaultValue="❓ Other"
-//               >
-//                 {categories.map((category) => (
-//                   <MenuItem key={category.name} value={category.name}>
-//                     {category.name}
-//                   </MenuItem>
-//                 ))}
-//               </TextField>
-//             ))}
-//           </Stack>
-//         </form>
-//       </DialogContent>
-//       <DialogActions sx={{ p: '1.25rem' }}>
-//         <Button onClick={onClose} style={buttonStyleCancel}>
-//           Cancel
-//         </Button>
-//         <Button
-//           onClick={handleSubmit}
-//           style={
-//             !validateAmount(values.amount) ||
-//             !validateRequired(values.amount) ||
-//             !validateRequired(values.description)
-//               ? buttonStyleAdd.disabled
-//               : buttonStyleAdd
-//           }
-//           // inactive if there are validation errors
-//           disabled={
-//             !validateAmount(values.amount) ||
-//             !validateRequired(values.amount) ||
-//             !validateRequired(values.description)
-//           }
-//         >
-//           Add
-//         </Button>
-//       </DialogActions>
-//     </Dialog>
-//   );
-// }
+const validateAmount = (value: string) => {
+  const number = Number(value);
+  return !Number.isNaN(number) && number > 0;
+};
 
-// function TransactionsTable({ type }: any) {
-//   const [createModalOpen, setCreateModalOpen] = useState(false);
-//   const [tableData, setTableData] = useState<Transaction[]>([]);
-//   const [validationErrors, setValidationErrors] = useState<{
-//     [cellId: string]: string;
-//   }>({});
-//   const [categories, setCategories] = useState<Category[]>([]);
-//   const [rowSelection, setRowSelection] = useState<MRT_RowSelectionState>({});
-//   const [pagination, setPagination] = useState({
-//     pageIndex: 0,
-//     pageSize: 20,
-//   });
-//   useEffect(() => {
-//     // get positive transactions from db
-//     dbQuery(
-//       `SELECT * FROM Transactions WHERE ${
-//         type === 'Income' ? 'amount > 0' : 'amount < 0'
-//       }`
-//     ).then((resp) => {
-//       setTableData(resp as Transaction[]);
-//     });
-//     // get categories from db
-//     dbQuery(`SELECT * FROM Categories${type}`).then((resp) => {
-//       setCategories(resp as Category[]);
-//     });
-//   }, [type]);
+const validateTransaction = (transaction: db.Transaction) => {
+  return {
+    date: validateDate(transaction.date) ? undefined : 'Date must be a valid date',
+    description: validateRequired(transaction.description) ? undefined : 'Description is required',
+    amount: validateAmount(transaction.amount.toString()) ? undefined : 'Amount must be a number >0',
+  };
+};
 
-//   const handleCreateNewRow = (values: Transaction) => {
-//     // if type is expense, make amount negative
-//     if (type === 'Expense') {
-//       values.amount = -values.amount;
-//     } else {
-//       values.amount = Math.abs(values.amount);
-//     }
-//     tableData.push(values);
-//     // insert row into db
-//     dbQuery(
-//       `INSERT INTO Transactions (date, description, amount, category) VALUES ('${values.date}', '${values.description}', ${values.amount}, '${values.category}')`
-//     );
-//     setTableData([...tableData]);
-//   };
+// database management functions
 
-//   const handleSaveCell = useCallback(
-//     (cell: MRT_Cell<Transaction>, value: any) => {
-//       // there is probably a better way to do this
-//       switch (cell.column.id) {
-//         case 'date':
-//           tableData[cell.row.index].date = value;
-//           break;
-//         case 'description':
-//           tableData[cell.row.index].description = value;
-//           break;
-//         case 'amount':
-//           tableData[cell.row.index].amount = value;
-//           break;
-//         case 'category':
-//           tableData[cell.row.index].category = value;
-//           break;
-//         default:
-//           break;
-//       }
-//       // update row in db
-//       dbQuery(
-//         `UPDATE Transactions SET date = '${
-//           tableData[cell.row.index].date
-//         }', description = '${
-//           tableData[cell.row.index].description
-//         }', amount = ${tableData[cell.row.index].amount}, category = '${
-//           tableData[cell.row.index].category
-//         }' WHERE id = ${tableData[cell.row.index].id}`
-//       );
-//       setTableData([...tableData]);
-//     },
-//     [tableData]
-//   );
+function useCreateTransaction(type: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (transaction: db.Transaction) => {
+      if (type === 'Income') {
+        transaction.amount = Math.abs(transaction.amount);
+      } else {
+        transaction.amount = -Math.abs(transaction.amount);
+      }
+      // update row in db
+      return await Exec(
+        `INSERT INTO Transactions (date, description, amount, category) VALUES (?, ?, ?, ?)`,
+        [transaction.date, transaction.description, transaction.amount, transaction.category]
+      );
+    },
+    //client side optimistic update
+    onMutate: (newTransactionInfo: db.Transaction) => {
+      queryClient.setQueryData(['transactions'], (prevTransactions: any) =>
+        [
+        ...prevTransactions, newTransactionInfo
+        ] as db.Transaction[],
+      );
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['transactions'] }),
+  });
+}
 
-//   const handleDeleteRows = useCallback(() => {
-//     // loop through selected rows and delete them from tableData
-//     const newTableData = tableData.filter((row) => !rowSelection[row.id]);
-//     // delete rows from db
-//     const query = `DELETE FROM Transactions WHERE id IN (${
-//       Object.keys(rowSelection) as string[]
-//     })`;
-//     dbQuery(query);
-//     setTableData(newTableData);
-//     setRowSelection({});
-//   }, [rowSelection, tableData]);
+function useGetCategories(type: string) {
+  return useQuery<db.Category[]>({
+    queryKey: ['categories'+type],
+    queryFn: async () => {
+      console.log("attempting to get categories from db")
+      return await QueryCategories(`SELECT * FROM Categories${type}`, []);
+    },
+    refetchOnWindowFocus: false,
+  });
+}
 
-//   const getCommonEditTextFieldProps = useCallback(
-//     (
-//       cell: MRT_Cell<Transaction>
-//     ): MRT_ColumnDef<Transaction>['muiTableBodyCellEditTextFieldProps'] => {
-//       return {
-//         error: !!validationErrors[cell.id],
-//         helperText: validationErrors[cell.id],
-//         onFocus: () => {
-//           delete validationErrors[cell.id];
-//           setValidationErrors({
-//             ...validationErrors,
-//           });
-//         },
-//         onChange: (event) => {
-//           const isValid =
-//             cell.column.id === 'date'
-//               ? validateDate(event.target.value)
-//               : cell.column.id === 'amount'
-//               ? validateAmount(event.target.value)
-//               : cell.column.id === 'category'
-//               ? validateCategory(event.target.value, categories)
-//               : validateRequired(event.target.value);
-//           if (!isValid) {
-//             // set validation error for cell if invalid
-//             setValidationErrors({
-//               ...validationErrors,
-//               [cell.id]: `${cell.column.columnDef.header} is invalid`,
-//             });
-//           } else {
-//             // remove validation error for cell if valid
-//             delete validationErrors[cell.id];
-//             setValidationErrors({
-//               ...validationErrors,
-//             });
-//           }
-//         },
-//         onBlur: (event) => {
-//           const isValid =
-//             cell.column.id === 'date'
-//               ? validateDate(event.target.value)
-//               : cell.column.id === 'amount'
-//               ? validateAmount(event.target.value)
-//               : cell.column.id === 'category'
-//               ? validateCategory(event.target.value, categories)
-//               : validateRequired(event.target.value);
-//           if (isValid) {
-//             handleSaveCell(cell, event.target.value);
-//           }
-//         },
-//       };
-//     },
-//     [categories, handleSaveCell, validationErrors]
-//   );
+function useGetTransactions(type: string) {
+  return useQuery<db.Transaction[]>({
+    queryKey: ['transactions'],
+    queryFn: async () => {
+      console.log("attempting to get transactions from db")
+      return await QueryTransactions(`SELECT * FROM Transactions WHERE ${
+        type === 'Income' ? 'amount > 0' : 'amount < 0'
+      }`, []);
+    },
+    refetchOnWindowFocus: false,
+  });
+}
 
-//   const categoriesMap = categories.map((category) => (
-//     <MenuItem key={category.name} value={category.name}>
-//       {category.name}
-//     </MenuItem>
-//   ));
+function useUpdateTransaction(type: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (transaction: db.Transaction) => {
+      if (type === 'Income') {
+        transaction.amount = Math.abs(transaction.amount);
+      } else {
+        transaction.amount = -Math.abs(transaction.amount);
+      }
+      // update row in db
+      return await Exec(
+        `UPDATE Transactions SET date = ?, description = ?, amount = ?, category = ? WHERE id = ?`,
+        [transaction.date, transaction.description, transaction.amount, transaction.category, transaction.id]
+      );
+    },
+    // client side optimistic update
+    onMutate: (newTransactionInfo: db.Transaction) => {
+      queryClient.setQueryData(['transactions'], (prevTransactions: any) =>
+        prevTransactions?.map((prevTransaction: db.Transaction) =>
+        prevTransaction.id === newTransactionInfo.id ? newTransactionInfo : prevTransaction
+        ),
+      );
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['transactions'] }),
+  });
+}
 
-//   const columns = useMemo<MRT_ColumnDef<Transaction>[]>(
-//     () => [
-//       {
-//         accessorKey: 'id',
-//         header: 'ID',
-//         enableColumnOrdering: false,
-//         enableEditing: false,
-//         enableSorting: false,
-//         size: 50,
-//         hide: true, // no clue why this doesn't work so will have to do below
-//         // hide header
-//         muiTableHeadCellProps: {
-//           style: {
-//             display: 'none',
-//           },
-//         },
-//         // hide cell
-//         muiTableBodyCellProps: {
-//           style: {
-//             display: 'none',
-//           },
-//         },
-//       },
-//       {
-//         accessorKey: 'date',
-//         header: 'Date',
-//         size: 100,
-//         // date picker
-//         muiTableBodyCellEditTextFieldProps: ({ cell }) => ({
-//           ...getCommonEditTextFieldProps(cell),
-//           type: 'date',
-//           format: 'dd/MM/yyyy',
-//         }),
-//         // display as dd/MM/yyyy
-//         Cell: ({ cell }) => formatDate(cell.getValue() as string),
-//       },
-//       {
-//         accessorKey: 'description',
-//         header: 'Description',
-//         size: 250,
-//         muiTableBodyCellEditTextFieldProps: ({ cell }) => ({
-//           ...getCommonEditTextFieldProps(cell),
-//         }),
-//       },
-//       {
-//         accessorKey: 'amount',
-//         header: 'Amount',
-//         size: 50,
-//         muiTableBodyCellEditTextFieldProps: ({ cell }) => ({
-//           ...getCommonEditTextFieldProps(cell),
-//         }),
-//         // format as currency
-//         Cell: ({ cell }) => formatCurrency(cell.getValue() as number),
-//       },
-//       {
-//         accessorKey: 'category',
-//         header: 'Category',
-//         size: 50,
-//         muiTableBodyCellEditTextFieldProps: ({ cell }) => ({
-//           select: true,
-//           children: categoriesMap,
-//           ...getCommonEditTextFieldProps(cell),
-//         }),
-//       },
-//     ],
-//     [categoriesMap, getCommonEditTextFieldProps]
-//   );
+function useDeleteTransaction() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      // update row in db
+      return await Exec(
+        `DELETE FROM Transactions WHERE id = ?`,
+        [id]
+      );
+    },
+    // client side optimistic update
+    onMutate: (id: number) => {
+      queryClient.setQueryData(['transactions'], (prevTransactions: any) =>
+        prevTransactions?.filter((prevTransaction: db.Transaction) =>
+        prevTransaction.id !== id
+        ),
+      );
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['transactions'] }),
+  });
+}
 
-//   return (
-//     <div className={`transactions-table-${type}`}>
-//       <MaterialReactTable
-//         muiTableContainerProps={
-//           {
-//             style: {
-//               maxHeight: 'calc(100vh - 167px)',
-//             },
-//           } as any
-//         }
-//         enableBottomToolbar
-//         enableTopToolbar
-//         enableStickyFooter
-//         enableStickyHeader
-//         enablePagination
-//         onPaginationChange={setPagination}
-//         columns={columns}
-//         data={tableData}
-//         enableColumnOrdering
-//         editingMode="cell"
-//         enableEditing
-//         enableRowSelection
-//         onRowSelectionChange={setRowSelection}
-//         state={{ rowSelection, pagination }}
-//         getRowId={(row) => row.id}
-//         renderTopToolbarCustomActions={() => (
-//           <span className="table-top-toolbar-container">
-//             <button
-//               className="button-add-transaction"
-//               type="button"
-//               onClick={() => setCreateModalOpen(true)}
-//             >
-//               Add
-//             </button>
-//             <button
-//               className="button-delete-transaction"
-//               type="button"
-//               disabled={Object.keys(rowSelection).length === 0}
-//               onClick={() => handleDeleteRows()}
-//             >
-//               Delete
-//             </button>
-//           </span>
-//         )}
-//       />
-//       <AddTransactionModal
-//         columns={columns}
-//         open={createModalOpen}
-//         onClose={() => setCreateModalOpen(false)}
-//         onSubmit={handleCreateNewRow}
-//         categories={categories}
-//         type={type}
-//       />
-//     </div>
-//   );
-// }
+type ValidationErrors = {
+  date?: string;
+  description?: string;
+  amount?: string;
+  category?: string;
+};
 
-// export default TransactionsTable;
+type ValidationAction = Partial<ValidationErrors>;
 
-export {}
+const TransactionsTable = ({ type }: { type: string }) => {
+  const [validationErrors, dispatchValidationErrors] = useReducer(
+    (state: ValidationErrors, action: ValidationAction) => ({ ...state, ...action }),
+    {}
+  );
+
+  // validation handlers
+
+  const handleDateChange = debounce(useCallback((event: { target: { value: string; }; }) => {
+    const isValid = validateDate(event.target.value);
+
+    dispatchValidationErrors({
+      date: isValid ? undefined : 'Date must be a valid date'
+    });
+  }, [validateDate]), 500);
+
+  const handleDescriptionChange = debounce(useCallback((event: { target: { value: string; }; }) => {
+    const isValid = validateRequired(event.target.value);
+
+    dispatchValidationErrors({
+      description: isValid ? undefined : 'Description is required'
+    });
+  }, [validateRequired]), 500);
+
+  const handleAmountChange = debounce(useCallback((event: { target: { value: string; }; }) => {
+    const isValid = validateAmount(event.target.value);
+
+    dispatchValidationErrors({
+      amount: isValid ? undefined : 'Amount must be a number >0'
+    });
+  }, [validateAmount]), 500);
+
+  // hooks
+  const {
+    data: fetchedTransactions = [],
+    isError: isLoadingTransactionsError,
+    isFetching: isFetchingTransactions,
+    isLoading: isLoadingTransactions,
+  } = useGetTransactions(type);
+  const {
+    data: fetchedCategories = [],
+    isError: isLoadingCategoriesError,
+    isFetching: isFetchingCategories,
+    isLoading: isLoadingCategories,
+  } = useGetCategories(type);
+  const { mutateAsync: createTransaction, isPending: isCreatingTransaction } = useCreateTransaction(type);
+  const { mutateAsync: updateTransaction, isPending: isUpdatingTransaction } = useUpdateTransaction(type);
+  const  { mutateAsync: deleteTransaction, isPending: isDeletingTransaction } = useDeleteTransaction();
+
+  // actions
+  const handleCreateTransaction: MRT_TableOptions<db.Transaction>['onCreatingRowSave'] = async ({
+    values,
+    table,
+  }: {
+    values: db.Transaction;
+    table: any;
+  }) => {
+    const newValidationErrors = validateTransaction(values);
+    if (Object.values(newValidationErrors).some((error) => error)) {
+      dispatchValidationErrors(newValidationErrors);
+      return;
+    }
+    dispatchValidationErrors({
+      date: undefined,
+      description: undefined,
+      amount: undefined,
+      category: undefined,
+    });
+    await createTransaction(values);
+    table.setCreatingRow(false);
+  }
+
+  const handleCreatingRow = (table: any) => {
+    table.setCreatingRow(true);
+    dispatchValidationErrors({
+      date: undefined,
+      description: undefined,
+      amount: undefined,
+      category: undefined,
+    });
+    table.setCreatingRow(
+      createRow(table, {
+        date: new Date().toISOString().split('T')[0],
+        description: '',
+        amount: 1,
+        category: fetchedCategories[0]?.name || '',
+      }),
+    );
+    // scroll to top of table
+    document.querySelector('.MuiTableContainer-root')?.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    });
+  }
+
+  const handleEditingRow = (table: any, row: MRT_Row<db.Transaction>) => {
+    dispatchValidationErrors({
+      date: undefined,
+      description: undefined,
+      amount: undefined,
+      category: undefined,
+    });
+    table.setEditingRow(row);
+  }
+
+  const openDeleteConfirmModal = (row: MRT_Row<db.Transaction>) => {
+    if (window.confirm('Are you sure you want to delete this Transaction?')) {
+      deleteTransaction(row.original.id);
+    }
+  };
+
+  const handleSaveTransaction: MRT_TableOptions<db.Transaction>['onEditingRowSave'] = async ({
+    values,
+    table,
+  }: {
+    values: db.Transaction;
+    table: any;
+  }) => {
+    const newValidationErrors = validateTransaction(values);
+    if (Object.values(newValidationErrors).some((error) => error)) {
+      dispatchValidationErrors(newValidationErrors);
+      return;
+    }
+    dispatchValidationErrors({
+      date: undefined,
+      description: undefined,
+      amount: undefined,
+      category: undefined,
+    });
+    await updateTransaction(values);
+    table.setEditingRow(null);
+  };
+
+  const columns = useMemo<MRT_ColumnDef<db.Transaction>[]>(
+    () => [
+      {
+        accessorKey: 'id',
+        header: 'ID',
+        enableColumnOrdering: false,
+        enableEditing: false,
+        enableSorting: false,
+        size: 50,
+        hide: true, // no clue why this doesn't work so will have to do below
+        // hide header
+        muiTableHeadCellProps: {
+          style: {
+            display: 'none',
+          },
+        },
+        // hide cell
+        muiTableBodyCellProps: {
+          style: {
+            display: 'none',
+          },
+        },
+      },
+      {
+        accessorKey: 'date',
+        header: 'Date',
+        size: 100,
+        // date picker
+        muiEditTextFieldProps: {
+          required: true,
+          type: 'date',
+          format: 'dd/MM/yyyy',
+          error: !!validationErrors.date,
+          helperText: validationErrors.date,
+          //remove any previous validation errors when user focuses on the input
+          onFocus: () =>
+            dispatchValidationErrors({
+              date: undefined,
+          }),
+          // validate on change
+          onChange: handleDateChange,
+          onBlur: handleDateChange,
+        },
+
+        // display as dd/MM/yyyy
+        Cell: ({ cell }) => formatDate(cell.getValue() as string),
+      },
+      {
+        accessorKey: 'description',
+        header: 'Description',
+        size: 250,
+        muiEditTextFieldProps: {
+          required: true,
+          error: !!validationErrors.description,
+          helperText: validationErrors.description,
+          onFocus: () =>
+            dispatchValidationErrors({
+              description: undefined,
+          }),
+          onChange: handleDescriptionChange,
+          onBlur: handleDescriptionChange,
+        },
+      },
+      {
+        accessorKey: 'amount',
+        header: 'Amount',
+        size: 50,
+        muiEditTextFieldProps: {
+          type: 'number',
+          format: 'currency',
+          required: true,
+          error: !!validationErrors.amount,
+          helperText: validationErrors.amount,
+          onFocus: () =>
+            dispatchValidationErrors({
+              amount: undefined,
+          }),
+          onChange: handleAmountChange,
+          onBlur: handleAmountChange,
+        },
+        // format as currency
+        Cell: ({ cell }) => formatCurrency(cell.getValue() as number),
+      },
+      {
+        accessorKey: 'category',
+        header: 'Category',
+        size: 50,
+        muiEditTextFieldProps: {
+          select: true,
+          required: true,
+          children: fetchedCategories.map((category) => (
+            <MenuItem key={category.name} value={category.name}>
+              {category.name}
+            </MenuItem>
+          )),
+          error: !!validationErrors.category,
+          helperText: validationErrors.category,
+          onFocus: () =>
+            dispatchValidationErrors({
+              category: undefined,
+          }),
+          // onChange: handleCategoryChange,
+          // onBlur: handleCategoryChange,
+        },
+      },
+    ],
+    [validationErrors, fetchedCategories]
+  );
+
+  const table = useMaterialReactTable<db.Transaction>({
+    columns,
+    data: fetchedTransactions,
+    createDisplayMode: 'row',
+    editDisplayMode: 'row',
+    enableEditing: true,
+    enableBottomToolbar: false,
+    enableStickyHeader: true,
+    enablePagination: true,
+    memoMode: 'cells',
+    // getRowId: (row) => row.id,
+    muiToolbarAlertBannerProps: isLoadingCategoriesError
+      ? {
+          color: 'error',
+          children: 'Error loading data',
+        }
+      : undefined,
+    muiTableContainerProps: {
+      sx: {
+        minHeight: '500px',
+      },
+      style: {
+        maxHeight: 'calc(100vh - 121px)',
+      }
+    },
+    onCreatingRowCancel: () => dispatchValidationErrors({
+      date: undefined,
+      description: undefined,
+      amount: undefined,
+      category: undefined,
+    }),
+    onCreatingRowSave: handleCreateTransaction,
+    onEditingRowCancel: () => dispatchValidationErrors({
+      date: undefined,
+      description: undefined,
+      amount: undefined,
+      category: undefined,
+    }),
+    onEditingRowSave: handleSaveTransaction,
+    renderEditRowDialogContent: useCallback<
+      Required<MRT_TableOptions<db.Transaction>>['renderEditRowDialogContent']
+    >( 
+      ({ table, row, internalEditComponents }) => 
+      <>
+        <DialogTitle variant="h3">Edit Transaction</DialogTitle>
+        <DialogContent
+          sx={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}
+        >
+          {internalEditComponents} {/* or render custom edit components here */}
+        </DialogContent>
+        <DialogActions>
+          <MRT_EditActionButtons variant="text" table={table} row={row} />
+        </DialogActions>
+      </>,
+      [],
+    ),
+    renderRowActions: useCallback<
+    Required<MRT_TableOptions<db.Transaction>>['renderRowActions']
+    >( 
+      ({ row, table }) =>
+      <Box sx={{ display: 'flex', gap: '1rem' }}>
+        <Tooltip title="Edit">
+          <IconButton onClick={() => handleEditingRow(table, row)}>
+            <EditIcon />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Delete">
+          <IconButton color="error" onClick={() => openDeleteConfirmModal(row)}>
+            <DeleteIcon />
+          </IconButton>
+        </Tooltip>
+      </Box>,
+      [],
+    ),
+    renderTopToolbarCustomActions: useCallback<
+    Required<MRT_TableOptions<db.Transaction>>['renderTopToolbarCustomActions']
+    >( 
+      ({ table }) => 
+      <div className="table-top-toolbar-container">
+        <div onClick={ () => handleCreatingRow(table) }>
+        <IconButton>
+          <AddIcon />
+        </IconButton>
+        </div>
+        <h2>{type}</h2>
+      </div>,
+      [],
+    ),
+    state: {
+      isLoading: isLoadingTransactions || isLoadingCategories,
+      isSaving: isCreatingTransaction || isUpdatingTransaction || isDeletingTransaction,
+      showAlertBanner: isLoadingTransactionsError,
+      showProgressBars: isFetchingTransactions || isFetchingCategories,
+    },
+  });
+
+  return <MaterialReactTable table={table} />;
+}
+
+export default TransactionsTable;
