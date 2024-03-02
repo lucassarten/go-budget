@@ -366,7 +366,7 @@ const CategoryTable = ({ type }: { type: string }) => {
       : undefined,
     muiTableContainerProps: {
       sx: {
-        minHeight: '500px',
+        minHeight: 'calc(100vh - 121px)',
       },
       style: {
         maxHeight: 'calc(100vh - 121px)',

@@ -2,7 +2,7 @@
 /* eslint-disable promise/catch-or-return */
 /* eslint-disable no-nested-ternary */
 /* eslint-disable camelcase */
-import { useCallback, useMemo, useReducer } from 'react';
+import { useCallback, useMemo, useReducer, useState } from 'react';
 import {
 MaterialReactTable,
 useMaterialReactTable,
@@ -48,9 +48,9 @@ const formatCurrency = (value: number) => {
 const formatDate = (value: string) => {
   const date = new Date(value);
   return date.toLocaleDateString('en-NZ', {
-    year: 'numeric',
-    month: 'numeric',
     day: 'numeric',
+    month: 'numeric',
+    year: 'numeric',
   });
 };
 
@@ -63,7 +63,7 @@ const validateDate = (value: string) => {
 
 const validateAmount = (value: string) => {
   const number = Number(value);
-  return !Number.isNaN(number) && number > 0;
+  return !Number.isNaN(number);
 };
 
 const validateTransaction = (transaction: db.Transaction) => {
@@ -190,7 +190,10 @@ const TransactionsTable = ({ type }: { type: string }) => {
     (state: ValidationErrors, action: ValidationAction) => ({ ...state, ...action }),
     {}
   );
-
+  const [pagination, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: 20,
+  });
   // validation handlers
 
   const handleDateChange = debounce(useCallback((event: { target: { value: string; }; }) => {
@@ -349,7 +352,7 @@ const TransactionsTable = ({ type }: { type: string }) => {
         muiEditTextFieldProps: {
           required: true,
           type: 'date',
-          format: 'dd/MM/yyyy',
+          format: 'DD/MM/YYYY',
           error: !!validationErrors.date,
           helperText: validationErrors.date,
           //remove any previous validation errors when user focuses on the input
@@ -362,7 +365,7 @@ const TransactionsTable = ({ type }: { type: string }) => {
           onBlur: handleDateChange,
         },
 
-        // display as dd/MM/yyyy
+        // display as DD/MM/YYYY
         Cell: ({ cell }) => formatDate(cell.getValue() as string),
       },
       {
@@ -433,9 +436,12 @@ const TransactionsTable = ({ type }: { type: string }) => {
     createDisplayMode: 'row',
     editDisplayMode: 'row',
     enableEditing: true,
-    enableBottomToolbar: false,
+    enableBottomToolbar: true,
+    enableStickyFooter: true,
+    enableTopToolbar: true,
     enableStickyHeader: true,
     enablePagination: true,
+    onPaginationChange: setPagination,
     memoMode: 'cells',
     // getRowId: (row) => row.id,
     muiToolbarAlertBannerProps: isLoadingCategoriesError
@@ -446,10 +452,10 @@ const TransactionsTable = ({ type }: { type: string }) => {
       : undefined,
     muiTableContainerProps: {
       sx: {
-        minHeight: '500px',
+        minHeight: 'calc(100vh - 167px)',
       },
       style: {
-        maxHeight: 'calc(100vh - 121px)',
+        maxHeight: 'calc(100vh - 167px)',
       }
     },
     onCreatingRowCancel: () => dispatchValidationErrors({
@@ -520,6 +526,7 @@ const TransactionsTable = ({ type }: { type: string }) => {
       isSaving: isCreatingTransaction || isUpdatingTransaction || isDeletingTransaction,
       showAlertBanner: isLoadingTransactionsError,
       showProgressBars: isFetchingTransactions || isFetchingCategories,
+      pagination,
     },
   });
 

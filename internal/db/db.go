@@ -32,6 +32,13 @@ func (db *Db) Startup(ctx context.Context) {
 	}
 	log.Println("Successfully opened database:", db.dbPath)
 
+	// set database date format to DD-MM-YYYY
+	log.Println("Setting database date format to DD-MM-YYYY")
+	err = db.Exec("PRAGMA date_class = 'yyyy-mm-dd';", nil)
+	if err != nil {
+		panic(err)
+	}
+
 	log.Println("Creating tables if they don't exist")
 	// Create tables
 	err = db.Exec(`

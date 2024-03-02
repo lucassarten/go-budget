@@ -16,6 +16,7 @@ export namespace db {
 	        this.colour = source["colour"];
 	    }
 	}
+	
 	export class Transaction {
 	    id: number;
 	    date: string;

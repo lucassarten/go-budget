@@ -252,15 +252,15 @@ function StatisticsSummary(
                 <div className="statistics-table-header">Summary</div>
               </TableCell>
               <TableCell>{`${
-                previousTimePeriod.startDate.getMonth() + 1
-              }/${previousTimePeriod.startDate.getDate()}/${previousTimePeriod.startDate.getFullYear()} - ${
-                previousTimePeriod.endDate.getMonth() + 1
-              }/${previousTimePeriod.endDate.getDate()}/${previousTimePeriod.endDate.getFullYear()}`}</TableCell>
+                previousTimePeriod.startDate.getDate()
+              }/${previousTimePeriod.startDate.getMonth() + 1}/${previousTimePeriod.startDate.getFullYear()} - ${
+                previousTimePeriod.endDate.getDate()
+              }/${previousTimePeriod.endDate.getMonth() + 1}/${previousTimePeriod.endDate.getFullYear()}`}</TableCell>
               <TableCell>{`${
-                timePeriod.startDate.getMonth() + 1
-              }/${timePeriod.startDate.getDate()}/${timePeriod.startDate.getFullYear()} - ${
-                timePeriod.endDate.getMonth() + 1
-              }/${timePeriod.endDate.getDate()}/${timePeriod.endDate.getFullYear()}`}</TableCell>
+                timePeriod.startDate.getDate()
+              }/${timePeriod.startDate.getMonth() + 1}/${timePeriod.startDate.getFullYear()} - ${
+                timePeriod.endDate.getDate()
+              }/${timePeriod.endDate.getMonth() + 1}/${timePeriod.endDate.getFullYear()}`}</TableCell>
               <TableCell>Change</TableCell>
             </TableRow>
           </TableHead>
@@ -284,7 +284,7 @@ function StatisticsSummary(
               </TableCell>
             </TableRow>
             <TableRow>
-              <TableCell>Expense</TableCell>
+              <TableCell>Expenses</TableCell>
               <TableCell>{formatCurrency(totalExpensePrevious)}</TableCell>
               <TableCell
                 style={{
@@ -403,15 +403,15 @@ function StatisticsByCategory(
                 </TableCell>
 
                 <TableCell>{`${
-                  previousTimePeriod.startDate.getMonth() + 1
-                }/${previousTimePeriod.startDate.getDate()}/${previousTimePeriod.startDate.getFullYear()} - ${
-                  previousTimePeriod.endDate.getMonth() + 1
-                }/${previousTimePeriod.endDate.getDate()}/${previousTimePeriod.endDate.getFullYear()}`}</TableCell>
+                  previousTimePeriod.startDate.getDate() 
+                }/${previousTimePeriod.startDate.getMonth()+ 1}/${previousTimePeriod.startDate.getFullYear()} - ${
+                  previousTimePeriod.endDate.getDate()
+                }/${previousTimePeriod.endDate.getMonth() + 1}/${previousTimePeriod.endDate.getFullYear()}`}</TableCell>
                 <TableCell>{`${
-                  timePeriod.startDate.getMonth() + 1
-                }/${timePeriod.startDate.getDate()}/${timePeriod.startDate.getFullYear()} - ${
-                  timePeriod.endDate.getMonth() + 1
-                }/${timePeriod.endDate.getDate()}/${timePeriod.endDate.getFullYear()}`}</TableCell>
+                  timePeriod.startDate.getDate()
+                }/${timePeriod.startDate.getMonth() + 1}/${timePeriod.startDate.getFullYear()} - ${
+                  timePeriod.endDate.getDate()
+                }/${timePeriod.endDate.getMonth() + 1}/${timePeriod.endDate.getFullYear()}`}</TableCell>
                 <TableCell>Change</TableCell>
               </TableRow>
             </TableHead>

@@ -6,9 +6,12 @@ import (
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/logger"
+	"github.com/wailsapp/wails/v2/pkg/menu"
+	"github.com/wailsapp/wails/v2/pkg/menu/keys"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 	"github.com/wailsapp/wails/v2/pkg/options/linux"
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 
 	"go-budget/internal/db"
 )
@@ -21,12 +24,15 @@ func main() {
 	app := NewApp()
 	// Create an instance of the db structure
 	db := db.NewDb("./user.db")
+	// Setup menu
+	menu := setupMenu(app, db)
 
 	// Create application with options
 	err := wails.Run(&options.App{
 		Title:              "go-budget",
 		Width:              1024,
 		Height:             768,
+		Menu:               menu,
 		Logger:             logger.NewDefaultLogger(),
 		LogLevel:           logger.DEBUG,
 		LogLevelProduction: logger.ERROR,
@@ -55,4 +61,15 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+func setupMenu(app *App, db *db.Db) *menu.Menu {
+	AppMenu := menu.NewMenu()
+	FileMenu := AppMenu.AddSubmenu("File")
+	FileMenu.AddText("Import", keys.CmdOrCtrl("o"), func(_ *menu.CallbackData) { app.LoadFile(app.ctx, db) })
+	FileMenu.AddSeparator()
+	FileMenu.AddText("Quit", keys.CmdOrCtrl("q"), func(_ *menu.CallbackData) {
+		runtime.Quit(app.ctx)
+	})
+	return AppMenu
 }

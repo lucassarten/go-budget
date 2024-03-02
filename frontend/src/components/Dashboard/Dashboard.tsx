@@ -254,7 +254,7 @@ function categoryPieChart(
             clip: false,
             formatter: (value) => {
               if (value < 0) {
-                return `-$${Math.abs(value)}`;
+                return `-$${Math.round(Math.abs(value))}`;
               }
               return `$${Math.round(value)}`;
             },
@@ -320,7 +320,12 @@ function IncomeEarningSavingsComparison(transactions: db.Transaction[]) {
           datalabels: {
             anchor: 'end',
             align: 'top',
-            formatter: (value) => `$${Math.round(value)}`,
+            formatter: (value) => {
+              if (value < 0) {
+                return `-$${Math.round(Math.abs(value))}`;
+              }
+              return `$${Math.round(value)}`;
+            },
             font: {
               weight: 'bold',
             },
