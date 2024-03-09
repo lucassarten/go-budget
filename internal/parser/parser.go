@@ -4,9 +4,11 @@ import (
 	"encoding/csv"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 
 	dbPkg "go-budget/internal/db"
+	"go-budget/internal/models"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -87,21 +89,32 @@ func ImportFile(db *dbPkg.Db, fileName string, typeStr string) error {
 		filteredContent[i] = []string{row[0], remove.ReplaceAllString(row[1], ""), row[2]}
 	}
 
-	// Add default category
-	for i, row := range filteredContent {
-		filteredContent[i] = append(row, "❓ Other")
+	// Attempt to auto categorize
+	toCategorize, err := db.QueryTransactions("SELECT * FROM transactions", nil)
+	if err != nil {
+		return err
 	}
+	// Build mock list of Transactions
+	transactions := make([]dbPkg.Transaction, len(filteredContent))
+	for i, row := range filteredContent {
+		amount, err := strconv.ParseFloat(row[2], 64)
+		if err != nil {
+			return err
+		}
+		transactions[i] = dbPkg.Transaction{
+			Date:        row[0],
+			Description: row[1],
+			Amount:      amount,
+		}
+	}
+	categorized := models.Categorize(toCategorize, transactions)
 
 	// Insert into database
-	for _, row := range filteredContent {
-		rowInterface := make([]interface{}, len(row))
-		for i, v := range row {
-			rowInterface[i] = v
-		}
+	for _, row := range categorized {
 		err := db.Exec(`
 			INSERT INTO Transactions (date, description, amount, category)
 			VALUES (?, ?, ?, ?)
-		`, rowInterface)
+		`, []interface{}{row.Date, row.Description, row.Amount, row.Category})
 		if err != nil {
 			return err
 		}
