@@ -1,19 +1,19 @@
 /* eslint-disable promise/catch-or-return */
 /* eslint-disable promise/always-return */
 /* eslint-disable react/destructuring-assignment */
-import { Chart, registerables } from 'chart.js';
-import ChartDataLabels from 'chartjs-plugin-datalabels';
-import annotationPlugin from 'chartjs-plugin-annotation';
-import { Bar, Pie } from 'react-chartjs-2';
-import { useEffect, useState } from 'react';
 import {
-  TextField,
   FormControl,
   InputLabel,
+  MenuItem,
   Select,
   SelectChangeEvent,
-  MenuItem,
+  TextField,
 } from '@mui/material';
+import { Chart, registerables } from 'chart.js';
+import annotationPlugin from 'chartjs-plugin-annotation';
+import ChartDataLabels from 'chartjs-plugin-datalabels';
+import { useEffect, useState } from 'react';
+import { Bar, Pie } from 'react-chartjs-2';
 
 import { QueryCategories, QueryTransactions } from "../../../wailsjs/go/db/Db";
 import { db } from "../../../wailsjs/go/models";
@@ -241,7 +241,7 @@ function categoryPieChart(
           title: {
             display: true,
             text: `${type === 'Income' ? 'Income' : 'Expenses'} by Category`,
-            color: 'black',
+            color: 'white',
             position: 'top',
             padding: {
               bottom: 20,
@@ -311,7 +311,7 @@ function IncomeEarningSavingsComparison(transactions: db.Transaction[]) {
           title: {
             display: true,
             text: 'Summary',
-            color: 'black',
+            color: 'white',
             position: 'top',
             padding: {
               bottom: 20,
@@ -338,6 +338,16 @@ function IncomeEarningSavingsComparison(transactions: db.Transaction[]) {
           x: {
             display: true,
             offset: true,
+            grid: {
+                color: 'grey',
+            },
+          },
+          y: {
+            display: true,
+            offset: true,
+            grid: {
+                color: 'grey',
+            },
           },
         },
       }}
@@ -394,7 +404,7 @@ function budgetComparisonBarChart(
   let budget = 0;
   if (category) {
     // calulate budget over implied time period. Budgets are for the month, so if the time period is a year, the budget is the monthly budget * 12
-    budget = category.target * (timePeriodLength / 1000 / 60 / 60 / 24 / 30);
+    budget = category.target * (timePeriodLength / 1000 / 60 / 60 / 24 / 30.5);
   }
   const actuals = periods.map((period) => {
     const periodTransactions = period.filter(
@@ -433,7 +443,7 @@ function budgetComparisonBarChart(
             text: `Implied ${type} Budget of ${formatCurrency(
               budget
             )} vs Actual`,
-            color: 'black',
+            color: 'white',
             position: 'top',
             padding: {
               bottom: 20,
@@ -470,6 +480,16 @@ function budgetComparisonBarChart(
           x: {
             display: true,
             offset: true,
+            grid: {
+                color: 'grey',
+            },
+          },
+          y: {
+            display: true,
+            offset: true,
+            grid: {
+                color: 'grey',
+            },
           },
         },
       }}
@@ -607,7 +627,7 @@ function Dashboard() {
 
   useEffect(() => {
     // get transactions from db between time period
-    QueryTransactions(`SELECT * FROM Transactions`, []).then((resp: db.Transaction[]) => {
+    QueryTransactions(`SELECT * FROM Transactions where category <> '🚫 Ignore'`, []).then((resp: db.Transaction[]) => {
       setTransactionsAll(resp);
       if (resp != null && resp.length > 0) {
         // filter out transactions that are not in the time period
@@ -622,13 +642,14 @@ function Dashboard() {
       }
     });
     // get categories from db
-    QueryCategories(`SELECT * FROM CategoriesExpense`, []).then((resp: db.Category[]) => {
+    QueryCategories(`SELECT * FROM CategoriesExpense where name <> '🚫 Ignore'`, []).then((resp: db.Category[]) => {
+
       if (resp != null && resp.length > 0) {
         setSelectedCategoryExpense(resp[0]);
         setCategoriesExpense(resp);
       }
     });
-    QueryCategories(`SELECT * FROM CategoriesIncome`, []).then((resp: db.Category[]) => {
+    QueryCategories(`SELECT * FROM CategoriesIncome where name <> '🚫 Ignore'`, []).then((resp: db.Category[]) => {
       if (resp != null && resp.length > 0) {
         setSelectedCategoryIncome(resp[0]);
         setCategoriesIncome(resp);

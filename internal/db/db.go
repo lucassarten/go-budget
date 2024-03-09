@@ -4,7 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
+
+	//"log"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -25,21 +26,21 @@ func NewDb(dbPath string) *Db {
 func (db *Db) Startup(ctx context.Context) {
 	db.ctx = ctx
 	// open the database
-	log.Println("Opening database:", db.dbPath)
+	// log.Println("Opening database:", db.dbPath)
 	err := db.Open()
 	if err != nil {
 		panic(err)
 	}
-	log.Println("Successfully opened database:", db.dbPath)
+	// log.Println("Successfully opened database:", db.dbPath)
 
 	// set database date format to DD-MM-YYYY
-	log.Println("Setting database date format to DD-MM-YYYY")
+	// log.Println("Setting database date format to DD-MM-YYYY")
 	err = db.Exec("PRAGMA date_class = 'yyyy-mm-dd';", nil)
 	if err != nil {
 		panic(err)
 	}
 
-	log.Println("Creating tables if they don't exist")
+	// log.Println("Creating tables if they don't exist")
 	// Create tables
 	err = db.Exec(`
 		CREATE TABLE IF NOT EXISTS Transactions (
@@ -73,16 +74,16 @@ func (db *Db) Startup(ctx context.Context) {
 	if err != nil {
 		panic(err)
 	}
-	log.Println("finished creating tables")
+	// log.Println("finished creating tables")
 
 	// Insert default values if CategoriesExpense table is empty
-	log.Println("Inserting default values if CategoriesExpense table is empty")
+	// log.Println("Inserting default values if CategoriesExpense table is empty")
 	count, err := db.QueryRowCount("SELECT COUNT(*) FROM CategoriesExpense", nil)
 	if err != nil {
 		panic(err)
 	}
 	if count == 0 {
-		log.Println("Inserting default values into CategoriesExpense table")
+		// log.Println("Inserting default values into CategoriesExpense table")
 		err = db.Exec(`
 			INSERT INTO CategoriesExpense (name, target, colour)
 			VALUES
@@ -103,6 +104,7 @@ func (db *Db) Startup(ctx context.Context) {
 				('🔔 Subscription', 0, '#9cd2f7'),
 				('🎁 Gifts', 0, '#89ccf6'),
 				('💸 Debt', 0, '#6aa1f4'),
+				('🚫 Ignore', 0, '#fc035e'),
 				('❓ Other', 0, '#5d97d1')
 		`, nil)
 		if err != nil {
@@ -111,13 +113,13 @@ func (db *Db) Startup(ctx context.Context) {
 	}
 
 	// Insert default values if CategoriesIncome table is empty
-	log.Println("Inserting default values if CategoriesIncome table is empty")
+	// log.Println("Inserting default values if CategoriesIncome table is empty")
 	count, err = db.QueryRowCount("SELECT COUNT(*) FROM CategoriesIncome", nil)
 	if err != nil {
 		panic(err)
 	}
 	if count == 0 {
-		log.Println("Inserting default values into CategoriesIncome table")
+		// log.Println("Inserting default values into CategoriesIncome table")
 		err = db.Exec(`
 			INSERT INTO CategoriesIncome (name, target, colour)
 			VALUES
@@ -127,13 +129,72 @@ func (db *Db) Startup(ctx context.Context) {
 				('🔁 Expense reimbursement', 0, '#cdf5b7'),
 				('🪙 Student allowance', 0, '#dbfdd8'),
 				('📈 Investment return', 0, '#ffcae9'),
+				('🚫 Ignore', 0, '#fc035e'),
 				('❓ Other', 0, '#ffa8d9')
 		`, nil)
 		if err != nil {
 			panic(err)
 		}
 	}
-	log.Println("Finished db setup")
+
+	// Insert Credit Card and Other into expenses and income if not present
+	count, err = db.QueryRowCount("SELECT COUNT(*) FROM CategoriesExpense WHERE name = '🚫 Ignore'", nil)
+	if err != nil {
+		panic(err)
+	}
+	if count == 0 {
+		err = db.Exec(`
+			INSERT INTO CategoriesExpense (name, target, colour)
+			VALUES
+				('🚫 Ignore', 0, '#fc035e')
+			`, nil)
+		if err != nil {
+			panic(err)
+		}
+	}
+	count, err = db.QueryRowCount("SELECT COUNT(*) FROM CategoriesIncome WHERE name = '🚫 Ignore'", nil)
+	if err != nil {
+		panic(err)
+	}
+	if count == 0 {
+		err = db.Exec(`
+			INSERT INTO CategoriesIncome (name, target, colour)
+			VALUES
+				('🚫 Ignore', 0, '#fc035e')
+			`, nil)
+		if err != nil {
+			panic(err)
+		}
+	}
+	count, err = db.QueryRowCount("SELECT COUNT(*) FROM CategoriesExpense WHERE name = '❓ Other'", nil)
+	if err != nil {
+		panic(err)
+	}
+	if count == 0 {
+		err = db.Exec(`
+			INSERT INTO CategoriesExpense (name, target, colour)
+			VALUES
+				('❓ Other', 0, '#5d97d1')
+			`, nil)
+		if err != nil {
+			panic(err)
+		}
+	}
+	count, err = db.QueryRowCount("SELECT COUNT(*) FROM CategoriesIncome WHERE name = '❓ Other'", nil)
+	if err != nil {
+		panic(err)
+	}
+	if count == 0 {
+		err = db.Exec(`
+			INSERT INTO CategoriesIncome (name, target, colour)
+			VALUES
+				('❓ Other', 0, '#5d97d1')
+			`, nil)
+		if err != nil {
+			panic(err)
+		}
+	}
+	// log.Println("Finished db setup")
 }
 
 func (db *Db) BeforeClose(ctx context.Context) bool {
@@ -173,7 +234,7 @@ func (db *Db) query(query string, args []interface{}) (*sql.Rows, error) {
 	if db.dbRef == nil {
 		return nil, fmt.Errorf("attempted to perform an action with no database connection")
 	}
-	log.Println("running query: ", query, args)
+	// log.Println("running query: ", query, args)
 	res, err := db.dbRef.QueryContext(db.ctx, query, args...)
 	return res, err
 }
@@ -182,7 +243,7 @@ func (db *Db) queryRow(query string, args []interface{}) (*sql.Row, error) {
 	if db.dbRef == nil {
 		return nil, fmt.Errorf("attempted to perform an action with no database connection")
 	}
-	log.Println("running queryRow: ", query, args)
+	// log.Println("running queryRow: ", query, args)
 	res := db.dbRef.QueryRowContext(db.ctx, query, args...)
 	return res, nil
 }
@@ -191,7 +252,7 @@ func (db *Db) Exec(query string, args []interface{}) error {
 	if db.dbRef == nil {
 		return fmt.Errorf("attempted to perform an action with no database connection")
 	}
-	log.Println("running query: ", query, args)
+	// log.Println("running query: ", query, args)
 	_, err := db.dbRef.ExecContext(db.ctx, query, args...)
 	return err
 }
@@ -210,7 +271,7 @@ func (db *Db) QueryTransaction(query string, args []interface{}) (Transaction, e
 	if err != nil {
 		return Transaction{}, err
 	}
-	log.Println("transaction: ", transaction)
+	// log.Println("transaction: ", transaction)
 	return transaction, nil
 }
 
@@ -231,7 +292,7 @@ func (db *Db) QueryTransactions(query string, args []interface{}) ([]Transaction
 		}
 		transactions = append(transactions, transaction)
 	}
-	log.Println("transactions: ", transactions)
+	//// log.Println("transactions: ", transactions)
 	return transactions, nil
 }
 
@@ -247,7 +308,7 @@ func (db *Db) QueryRowCategory(query string, args []interface{}) (Category, erro
 	if err != nil {
 		return Category{}, err
 	}
-	log.Println("category: ", category)
+	// log.Println("category: ", category)
 	return category, nil
 }
 
@@ -268,7 +329,7 @@ func (db *Db) QueryCategories(query string, args []interface{}) ([]Category, err
 		}
 		categories = append(categories, category)
 	}
-	log.Println("categories: ", categories)
+	// log.Println("categories: ", categories)
 	return categories, nil
 }
 

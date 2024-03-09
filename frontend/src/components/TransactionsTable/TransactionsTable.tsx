@@ -2,36 +2,36 @@
 /* eslint-disable promise/catch-or-return */
 /* eslint-disable no-nested-ternary */
 /* eslint-disable camelcase */
-import { useCallback, useMemo, useReducer, useState } from 'react';
-import {
-MaterialReactTable,
-useMaterialReactTable,
-MRT_EditActionButtons,
-type MRT_ColumnDef,
-type MRT_TableOptions,
-type MRT_Row,
-createRow,
-} from 'material-react-table';
+import AddIcon from '@mui/icons-material/Add';
+import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
 import {
   Box,
   DialogActions,
   DialogContent,
   DialogTitle,
   IconButton,
-  Tooltip,
   MenuItem,
+  Tooltip,
 } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
 import {
   useMutation,
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
-import debounce from 'lodash.debounce'
+import debounce from 'lodash.debounce';
+import {
+  MRT_EditActionButtons,
+  MaterialReactTable,
+  createRow,
+  useMaterialReactTable,
+  type MRT_ColumnDef,
+  type MRT_Row,
+  type MRT_TableOptions,
+} from 'material-react-table';
+import { useCallback, useMemo, useReducer, useState } from 'react';
 
-import { Exec, QueryTransactions, QueryCategories } from "../../../wailsjs/go/db/Db";
+import { Exec, QueryCategories, QueryTransactions } from "../../../wailsjs/go/db/Db";
 import { db } from "../../../wailsjs/go/models";
 
 // validation functions
@@ -347,12 +347,16 @@ const TransactionsTable = ({ type }: { type: string }) => {
       {
         accessorKey: 'date',
         header: 'Date',
+        type: 'date',
+        dateSetting: { locale: "en-NZ" },
+        format: 'dd/MM/yyyy',
         size: 100,
         // date picker
         muiEditTextFieldProps: {
           required: true,
           type: 'date',
-          format: 'DD/MM/YYYY',
+          dateSetting: { locale: "en-NZ" },
+          format: 'dd/MM/yyyy',
           error: !!validationErrors.date,
           helperText: validationErrors.date,
           //remove any previous validation errors when user focuses on the input

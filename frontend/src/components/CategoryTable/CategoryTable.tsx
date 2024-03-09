@@ -2,16 +2,9 @@
 /* eslint-disable promise/catch-or-return */
 /* eslint-disable no-nested-ternary */
 /* eslint-disable camelcase */
-import { useCallback, useMemo, useReducer } from 'react';
-import {
-  MaterialReactTable,
-  useMaterialReactTable,
-  MRT_EditActionButtons,
-  type MRT_ColumnDef,
-  type MRT_TableOptions,
-  type MRT_Row,
-  createRow,
-} from 'material-react-table';
+import AddIcon from '@mui/icons-material/Add';
+import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
 import {
   Box,
   DialogActions,
@@ -20,15 +13,22 @@ import {
   IconButton,
   Tooltip,
 } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
 import {
   useMutation,
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
-import debounce from 'lodash.debounce'
+import debounce from 'lodash.debounce';
+import {
+  MRT_EditActionButtons,
+  MaterialReactTable,
+  createRow,
+  useMaterialReactTable,
+  type MRT_ColumnDef,
+  type MRT_Row,
+  type MRT_TableOptions,
+} from 'material-react-table';
+import { useCallback, useMemo, useReducer } from 'react';
 
 import { Exec, QueryCategories } from "../../../wailsjs/go/db/Db";
 import { db } from "../../../wailsjs/go/models";
@@ -96,7 +96,6 @@ function useGetCategories(type: string) {
   return useQuery<db.Category[]>({
     queryKey: ['categories'+type],
     queryFn: async () => {
-      console.log("attempting to get categories from db")
       return await QueryCategories(`SELECT * FROM Categories${type}`, []);
     },
     refetchOnWindowFocus: false,
@@ -107,6 +106,10 @@ function useUpdateCategory(type: string){
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (category: db.Category) => {
+      if (category.name === '🚫 Ignore' || category.name === '❓ Other') {
+        window.alert('Cannot update default categories');
+        return;
+      }
       // update row in db
       return await Exec(
         `UPDATE Categories${type} SET name = ?, target = ?, colour = ? WHERE name = ?`, 
@@ -129,6 +132,10 @@ function useDeleteCategory(type: string){
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (name: string) => {
+      if (name === '🚫 Ignore' || name === '❓ Other') {
+        window.alert('Cannot delete default categories');
+        return;
+      }
       // update row in db
       return await Exec(`DELETE FROM Categories${type} WHERE name = ?`, [name]);
     },

@@ -17,6 +17,8 @@ func Categorize(transactions []dbPkg.Transaction, toClassify []dbPkg.Transaction
 		ranks := fuzzy.RankFindNormalizedFold(transaction.Description, descriptions)
 		if len(ranks) > 0 {
 			toClassify[i].Category = transactions[ranks[0].OriginalIndex].Category
+		} else {
+			toClassify[i].Category = "❓ Other"
 		}
 	}
 
