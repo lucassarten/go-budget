@@ -13,9 +13,6 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-// specific references to ignore, these are transfers between my own accounts for example, these rows are dropped
-var ignore = regexp.MustCompile(`Tf To|Tf Fr|T/f from|T/f to|TRANSFER|TRANSFER`)
-
 // specific phrases to remove, these rows aren't dropped just cleaned for the below strings
 var remove = regexp.MustCompile(`;Ref:|;Particulars:|;Balance:|;`)
 
@@ -45,13 +42,26 @@ func ImportFile(db *dbPkg.Db, fileName string, typeStr string) error {
 
 	// Process based on the specified type
 	if typeStr == "TSB" {
-		// Format columns
-		for _, row := range records {
-			content = append(content, []string{
-				strings.TrimSpace(row[0]),
-				strings.TrimSpace(row[2] + row[3]),
-				strings.TrimSpace(row[1]),
-			})
+		if len(records[0]) == 3 {
+			// Format columns
+			for _, row := range records {
+				content = append(content, []string{
+					strings.TrimSpace(row[0]),
+					strings.TrimSpace(row[1]),
+					strings.TrimSpace(row[2]),
+				})
+			}
+		} else if len(records[0]) == 5 {
+			// Format columns
+			for _, row := range records {
+				content = append(content, []string{
+					strings.TrimSpace(row[0]),
+					strings.TrimSpace(row[2] + row[3]),
+					strings.TrimSpace(row[1]),
+				})
+			}
+		} else {
+			return nil
 		}
 
 		// Convert to date format yyyy-mm-dd
@@ -76,17 +86,10 @@ func ImportFile(db *dbPkg.Db, fileName string, typeStr string) error {
 		}
 	}
 
-	// Remove ignored rows
+	// Remove unwanted strings
 	var filteredContent [][]string
 	for _, row := range content {
-		if !ignore.MatchString(row[1]) {
-			filteredContent = append(filteredContent, row)
-		}
-	}
-
-	// Remove unwanted strings
-	for i, row := range filteredContent {
-		filteredContent[i] = []string{row[0], remove.ReplaceAllString(row[1], ""), row[2]}
+		filteredContent = append(filteredContent, []string{row[0], remove.ReplaceAllString(row[1], ""), row[2]})
 	}
 
 	// Attempt to auto categorize

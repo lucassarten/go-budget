@@ -1,21 +1,21 @@
 /* eslint-disable react/destructuring-assignment */
 // the statitics view presents the raw statistics of the budget in tables
-import { useEffect, useState } from 'react';
 import {
-  TextField,
   FormControl,
   InputLabel,
+  MenuItem,
   Select,
   SelectChangeEvent,
-  MenuItem,
+  TextField,
 } from '@mui/material';
+import Paper from '@mui/material/Paper';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
-import Paper from '@mui/material/Paper';
+import { useEffect, useState } from 'react';
 
 import { QueryCategories, QueryTransactions } from "../../../wailsjs/go/db/Db";
 import { db } from "../../../wailsjs/go/models";
@@ -483,14 +483,14 @@ function Statistics() {
   });
   useEffect(() => {
     // get transactions from db between time period
-    QueryTransactions("SELECT * FROM Transactions", []).then((response: db.Transaction[]) => {
+    QueryTransactions("SELECT * FROM Transactions where category <> '🚫 Ignore'", []).then((response: db.Transaction[]) => {
       setTransactionsAll(response);
     });
     // get categories from db
-    QueryCategories("SELECT * FROM CategoriesIncome", []).then((response: db.Category[]) => {
+    QueryCategories("SELECT * FROM CategoriesIncome where name <> '🚫 Ignore'", []).then((response: db.Category[]) => {
       setCategoriesIncome(response);
     });
-    QueryCategories("SELECT * FROM CategoriesExpense", []).then((response: db.Category[]) => {
+    QueryCategories("SELECT * FROM CategoriesExpense where name <> '🚫 Ignore'", []).then((response: db.Category[]) => {
       setCategoriesExpense(response);
     });
   }, [timePeriod]);
@@ -500,7 +500,7 @@ function Statistics() {
 
   return (
     <div className="statistics-container">
-      <div className="time-period-selector-container">
+      <div className="time-period-selector-container-statistics">
         <TimePeriodSelector onTimePeriodChange={setTimePeriod} />
       </div>
       <div className="statistics-summary-container">

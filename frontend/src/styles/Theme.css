@@ -1,39 +1,39 @@
 :root {
   /* tabs in the top toolbar */
   --tab-text-color: #ffffff;
-  --tab-dashboard: #2E5B9E;
-  --tab-dashboard-hover: #4276b9;
-  --tab-dashboard-active: #4276b9;
-  --tab-statistics: #22948e;
-  --tab-statistics-hover: #26a6a0;
-  --tab-statistics-active: #26a6a0;
-  --tab-income: #75A52E;
-  --tab-income-hover: #83b834;
-  --tab-income-active: #83b834;
-  --tab-expenses: #A63D26;
-  --tab-expenses-hover: #be492f;
-  --tab-expenses-active: #be492f;
-  --tab-budgetTargets: #6226a6;
-  --tab-budgetTargets-hover: #7d34c7;
-  --tab-budgetTargets-active: #7d34c7;
+  --tab-dashboard: #234578;
+  --tab-dashboard-hover: #355c90;
+  --tab-dashboard-active: #355c90;
+  --tab-statistics: #196965;
+  --tab-statistics-hover: #1d817c;
+  --tab-statistics-active: #1d817c;
+  --tab-income: #5d8324;
+  --tab-income-hover: #72a02d;
+  --tab-income-active: #72a02d;
+  --tab-expenses: #83311f;
+  --tab-expenses-hover: #a44029;
+  --tab-expenses-active: #a44029;
+  --tab-budgetTargets: #562390;
+  --tab-budgetTargets-hover: #7633ba;
+  --tab-budgetTargets-active: #7633ba;
   /* buttons in the top toolbar of the transactions table */
   --button-text-color: #ffffff;
-  --button-add-transaction: #75A52E;
-  --button-delete-transaction: #A63D26;
+  --button-add-transaction: #72a02d;
+  --button-delete-transaction: #a44029;
   --button-delete-transaction-disabled: #c0c0c0;
   /* buttons in the add transaction form */
-  --button-add-transaction-form: #75A52E;
-  --button-cancel-transaction-form: #A63D26;
+  --button-add-transaction-form: #72a02d;
+  --button-cancel-transaction-form: #a44029;
   --button-cancel-transaction-form-disabled: #c0c0c0;
   /* buttons in the add category form */
-  --button-add-category: #75A52E;
-  --button-delete-category: #A63D26;
+  --button-add-category: #72a02d;
+  --button-delete-category: #a44029;
   --button-delete-category-disabled: #c0c0c0;
   /* table borders */
   --general-border: #c0c0c0;
-  --expense-border: #be492f;
-  --income-border: #83b834;
-  --statistics-border: #26a6a0;
-  --dashboard-border: #4276b9;
-  --budget-targets-border: #7d34c7;
+  --expense-border: #a44029;
+  --income-border: #72a02d;
+  --statistics-border: #1d817c;
+  --dashboard-border: #355c90;
+  --budget-targets-border: #7633ba;
 }

@@ -1,9 +1,9 @@
 package db
 
 type Category struct {
-	Name   string `json:"name"`
-	Target int    `json:"target"`
-	Colour string `json:"colour"`
+	Name   string  `json:"name"`
+	Target float64 `json:"target"`
+	Colour string  `json:"colour"`
 }
 
 type Transaction struct {

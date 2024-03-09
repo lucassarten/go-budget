@@ -19,11 +19,13 @@
 }
 
 .dashboard-graph-container {
+  color: white;
   height: 100%;
   overflow: hidden;
 }
 
 .dashboard-comparison-grid {
+  color: white;
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr;
@@ -34,6 +36,7 @@
 }
 
 .time-period-selector-container {
+  color: white;
   display: flex;
   justify-content: flex-start;
   align-items: center;
@@ -42,38 +45,46 @@
 }
 
 .comparison-chart-container {
+  color: white;
   height: calc(100% - 60px);
   overflow: hidden;
 }
 
 .bar-chart-container {
+  color: white;
   height: 100%;
   overflow: hidden;
 }
 
 .pie-chart-container {
+  color: white;
   height: 100%;
   overflow: hidden;
 }
 
 .budget-comparison-container {
+  color: white;
   height: 100%;
   overflow: hidden;
 }
 
 .time-period-selector {
+  color: white;
   width: 150px;
 }
 
 .category-selector {
+  color: white;
   width: 200px;
 }
 
 .interval-selector {
+  color: white;
   width: 100px;
 }
 
 .category-selector-container {
+  color: white;
   padding-top: 5px;
   height: 60px
 }

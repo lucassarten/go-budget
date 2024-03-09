@@ -1,15 +1,27 @@
-import { MemoryRouter as Router, Routes, Route } from 'react-router-dom';
 import { useState } from 'react';
+import { Route, MemoryRouter as Router, Routes } from 'react-router-dom';
 
 import './styles/App.css';
 // import TransactionsTable from './components/TransactionsTable/TransactionsTable';
-import Dashboard from './components/Dashboard/Dashboard';
-import CategoryTable from './components/CategoryTable/CategoryTable';
-import TransactionsTable from './components/TransactionsTable/TransactionsTable';
-import Statistics from './components/Statistics/Statistics';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import CategoryTable from './components/CategoryTable/CategoryTable';
+import Dashboard from './components/Dashboard/Dashboard';
+import Statistics from './components/Statistics/Statistics';
+import TransactionsTable from './components/TransactionsTable/TransactionsTable';
 
 type Tab = 'dashboard' | 'statistics' | 'income' | 'expenses' | 'budgetTargets';
+
+
+const darkTheme = createTheme({
+  palette: {
+    mode: 'dark',
+    primary: {
+      main: '#7657c0',
+      dark: 'white',
+    },
+  },
+});
 
 function DashboardView() {
   return <Dashboard />;
@@ -115,7 +127,7 @@ function MainLayout() {
       {activeTab === 'expenses' && <ExpensesView />}
       {activeTab === 'income' && <IncomeView />}
       {activeTab === 'budgetTargets' && <BudgetTargetsView />}
-    </div>
+      </div>
   );
 }
 
@@ -124,6 +136,7 @@ const queryClient = new QueryClient()
 
 export default function App() {
   return (
+    <ThemeProvider theme={darkTheme}>
     <QueryClientProvider client={queryClient}>
     <Router>
       <Routes>
@@ -132,5 +145,6 @@ export default function App() {
     </Router>
 
     </QueryClientProvider>
+    </ThemeProvider>
   );
 }

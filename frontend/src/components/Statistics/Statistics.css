@@ -5,6 +5,16 @@
   border: 5px solid var(--statistics-border);
 }
 
+.time-period-selector-container-statistics {
+  color: white;
+  background-color: #121212;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  padding-top: 20px;
+  padding-left: 10px;
+}
+
 .time-period-selector-statistics {
   width: 250px;
 }

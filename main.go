@@ -3,6 +3,7 @@ package main
 import (
 	"embed"
 	"log"
+	"os"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/logger"
@@ -20,18 +21,25 @@ import (
 var assets embed.FS
 
 func main() {
+	dbPath := "./user.db"
+	if len(os.Args) > 1 {
+		if os.Args[1] == "-db" {
+			dbPath = os.Args[2]
+		}
+	}
+
 	// Create an instance of the app structure
 	app := NewApp()
 	// Create an instance of the db structure
-	db := db.NewDb("./user.db")
+	db := db.NewDb(dbPath)
 	// Setup menu
 	menu := setupMenu(app, db)
 
 	// Create application with options
 	err := wails.Run(&options.App{
 		Title:              "go-budget",
-		Width:              1024,
-		Height:             768,
+		Width:              1600,
+		Height:             900,
 		Menu:               menu,
 		Logger:             logger.NewDefaultLogger(),
 		LogLevel:           logger.DEBUG,
