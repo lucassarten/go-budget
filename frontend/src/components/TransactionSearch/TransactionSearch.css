@@ -1,0 +1,16 @@
+.transactions-table-Expense {
+  width: calc(100% - 10px);
+  height: calc(100vh - 54px);
+  border: 5px solid var(--expense-border);
+}
+
+.transactions-table-Income {
+  width: calc(100% - 10px);
+  height: calc(100vh - 54px);
+  border: 5px solid var(--income-border);
+}
+
+.table-top-toolbar-container {
+  display: flex;
+  gap: 5px;
+}

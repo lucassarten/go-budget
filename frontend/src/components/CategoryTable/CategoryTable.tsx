@@ -70,7 +70,7 @@ function validateCategory(category: db.Category) {
 
 // database management functions
 
-function useCreateCategory(type: string){
+function useCreateCategory(type: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (category: db.Category) => {
@@ -82,19 +82,19 @@ function useCreateCategory(type: string){
     },
     //client side optimistic update
     onMutate: (newCategoryInfo: db.Category) => {
-      queryClient.setQueryData(['categories'+type], (prevCategories: any) =>
+      queryClient.setQueryData(['categories' + type], (prevCategories: any) =>
         [
-        ...prevCategories, newCategoryInfo
+          ...prevCategories, newCategoryInfo
         ] as db.Category[],
       );
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['categories'+type] }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['categories' + type] }),
   });
 }
 
 function useGetCategories(type: string) {
   return useQuery<db.Category[]>({
-    queryKey: ['categories'+type],
+    queryKey: ['categories' + type],
     queryFn: async () => {
       return await QueryCategories(`SELECT * FROM Categories${type}`, []);
     },
@@ -102,37 +102,37 @@ function useGetCategories(type: string) {
   });
 }
 
-function useUpdateCategory(type: string){
+function useUpdateCategory(type: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (category: db.Category) => {
-      if (category.name === '🚫 Ignore' || category.name === '❓ Other') {
+      if (category.name === '🚫 Ignore' || category.name === '❓ Other' || category.name === '🔁 Reimbursement') {
         window.alert('Cannot update default categories');
         return;
       }
       // update row in db
       return await Exec(
-        `UPDATE Categories${type} SET name = ?, target = ?, colour = ? WHERE name = ?`, 
+        `UPDATE Categories${type} SET name = ?, target = ?, colour = ? WHERE name = ?`,
         [category.name, category.target, category.colour, category.name]
       );
     },
     // client side optimistic update
     onMutate: (newCategoryInfo: db.Category) => {
-      queryClient.setQueryData(['categories'+type], (prevCategories: any) =>
+      queryClient.setQueryData(['categories' + type], (prevCategories: any) =>
         prevCategories?.map((prevCategory: db.Category) =>
           prevCategory.name === newCategoryInfo.name ? newCategoryInfo : prevCategory,
         ),
       );
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['categories'+type] }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['categories' + type] }),
   });
 }
 
-function useDeleteCategory(type: string){
+function useDeleteCategory(type: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (name: string) => {
-      if (name === '🚫 Ignore' || name === '❓ Other') {
+      if (name === '🚫 Ignore' || name === '❓ Other' || name === '🔁 Reimbursement') {
         window.alert('Cannot delete default categories');
         return;
       }
@@ -141,11 +141,11 @@ function useDeleteCategory(type: string){
     },
     // client side optimistic update
     onMutate: (name: string) => {
-      queryClient.setQueryData(['categories'+type], (prevCategories: any) =>
+      queryClient.setQueryData(['categories' + type], (prevCategories: any) =>
         prevCategories?.filter((prevCategory: db.Category) => prevCategory.name !== name),
       );
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['categories'+type] }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['categories' + type] }),
   });
 }
 
@@ -169,10 +169,10 @@ const CategoryTable = ({ type }: { type: string }) => {
     const isValid = validateRequired(event.target.value);
 
     dispatchValidationErrors({
-       name: isValid ? undefined : 'Name is required',
+      name: isValid ? undefined : 'Name is required',
     });
   }, [validateRequired]), 500);
- 
+
   const handleTargetChange = debounce(useCallback((event: { target: { value: string; }; }) => {
     const isValid = validateAmount(event.target.value);
 
@@ -180,7 +180,7 @@ const CategoryTable = ({ type }: { type: string }) => {
       target: isValid ? undefined : 'Target must be a positive number',
     });
   }, [validateAmount]), 500);
- 
+
   const handleColourChange = debounce(useCallback((event: { target: { value: string; }; }) => {
     const isValid = validateColour(event.target.value);
 
@@ -199,7 +199,7 @@ const CategoryTable = ({ type }: { type: string }) => {
   } = useGetCategories(type);
   const { mutateAsync: createCategory, isPending: isCreatingCategory } = useCreateCategory(type);
   const { mutateAsync: updateCategory, isPending: isUpdatingCategory } = useUpdateCategory(type);
-  const  { mutateAsync: deleteCategory, isPending: isDeletingCategory } = useDeleteCategory(type);
+  const { mutateAsync: deleteCategory, isPending: isDeletingCategory } = useDeleteCategory(type);
 
   // actions
   const handleCreateCategory: MRT_TableOptions<db.Category>['onCreatingRowSave'] = async ({
@@ -234,7 +234,7 @@ const CategoryTable = ({ type }: { type: string }) => {
       createRow(table, {
         name: '',
         target: 0,
-        colour: '#'+Math.floor(Math.random()*16777215).toString(16),
+        colour: '#' + Math.floor(Math.random() * 16777215).toString(16),
       }),
     );
     // scroll to top of table
@@ -294,7 +294,7 @@ const CategoryTable = ({ type }: { type: string }) => {
           onFocus: () =>
             dispatchValidationErrors({
               name: undefined,
-          }),
+            }),
           // validate on change
           onChange: handleNameChange,
           onBlur: handleNameChange,
@@ -314,7 +314,7 @@ const CategoryTable = ({ type }: { type: string }) => {
           onFocus: () =>
             dispatchValidationErrors({
               target: undefined,
-          }),
+            }),
           // validate on change
           onChange: handleTargetChange,
           onBlur: handleTargetChange,
@@ -344,7 +344,7 @@ const CategoryTable = ({ type }: { type: string }) => {
           onFocus: () =>
             dispatchValidationErrors({
               colour: undefined,
-          }),
+            }),
           // validate on change
           onChange: handleColourChange,
           onBlur: handleColourChange,
@@ -367,9 +367,9 @@ const CategoryTable = ({ type }: { type: string }) => {
     getRowId: (row) => row.name,
     muiToolbarAlertBannerProps: isLoadingCategoriesError
       ? {
-          color: 'error',
-          children: 'Error loading data',
-        }
+        color: 'error',
+        children: 'Error loading data',
+      }
       : undefined,
     muiTableContainerProps: {
       sx: {
@@ -393,51 +393,51 @@ const CategoryTable = ({ type }: { type: string }) => {
     onEditingRowSave: handleSaveCategory,
     renderEditRowDialogContent: useCallback<
       Required<MRT_TableOptions<db.Category>>['renderEditRowDialogContent']
-    >( 
-      ({ table, row, internalEditComponents }) => 
-      <>
-        <DialogTitle variant="h3">Edit Category</DialogTitle>
-        <DialogContent
-          sx={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}
-        >
-          {internalEditComponents} {/* or render custom edit components here */}
-        </DialogContent>
-        <DialogActions>
-          <MRT_EditActionButtons variant="text" table={table} row={row} />
-        </DialogActions>
-      </>,
+    >(
+      ({ table, row, internalEditComponents }) =>
+        <>
+          <DialogTitle variant="h3">Edit Category</DialogTitle>
+          <DialogContent
+            sx={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}
+          >
+            {internalEditComponents} {/* or render custom edit components here */}
+          </DialogContent>
+          <DialogActions>
+            <MRT_EditActionButtons variant="text" table={table} row={row} />
+          </DialogActions>
+        </>,
       [],
     ),
     renderRowActions: useCallback<
-    Required<MRT_TableOptions<db.Category>>['renderRowActions']
-    >( 
+      Required<MRT_TableOptions<db.Category>>['renderRowActions']
+    >(
       ({ row, table }) =>
-      <Box sx={{ display: 'flex', gap: '1rem' }}>
-        <Tooltip title="Edit">
-          <IconButton onClick={() => handleEditingRow(table, row)}>
-            <EditIcon />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Delete">
-          <IconButton color="error" onClick={() => openDeleteConfirmModal(row)}>
-            <DeleteIcon />
-          </IconButton>
-        </Tooltip>
-      </Box>,
+        <Box sx={{ display: 'flex', gap: '1rem' }}>
+          <Tooltip title="Edit">
+            <IconButton onClick={() => handleEditingRow(table, row)}>
+              <EditIcon />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Delete">
+            <IconButton color="error" onClick={() => openDeleteConfirmModal(row)}>
+              <DeleteIcon />
+            </IconButton>
+          </Tooltip>
+        </Box>,
       [],
     ),
     renderTopToolbarCustomActions: useCallback<
-    Required<MRT_TableOptions<db.Category>>['renderTopToolbarCustomActions']
-    >( 
-      ({ table }) => 
-      <div className="table-top-toolbar-container">
-        <div onClick={ () => handleCreatingRow(table) }>
-        <IconButton>
-          <AddIcon />
-        </IconButton>
-        </div>
-        <h2>{type}</h2>
-      </div>,
+      Required<MRT_TableOptions<db.Category>>['renderTopToolbarCustomActions']
+    >(
+      ({ table }) =>
+        <div className="table-top-toolbar-container">
+          <div onClick={() => handleCreatingRow(table)}>
+            <IconButton>
+              <AddIcon />
+            </IconButton>
+          </div>
+          <h2>{type}</h2>
+        </div>,
       [],
     ),
     state: {
@@ -447,7 +447,7 @@ const CategoryTable = ({ type }: { type: string }) => {
       showProgressBars: isFetchingCategories,
     },
   });
-  
+
   return <MaterialReactTable table={table} />;
 }
 

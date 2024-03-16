@@ -18,7 +18,7 @@ const darkTheme = createTheme({
     mode: 'dark',
     primary: {
       main: '#7657c0',
-      dark: 'white',
+      dark: '#61489a',
     },
   },
 });
@@ -55,10 +55,10 @@ function BudgetTargetsView() {
   return (
     <div className="target-tables-container">
       <div className="expense-targets-table">
-        <CategoryTable type="Expense"/>
+        <CategoryTable type="Expense" />
       </div>
       <div className="income-targets-table">
-        <CategoryTable type="Income"/>
+        <CategoryTable type="Income" />
       </div>
     </div>
   );
@@ -77,9 +77,8 @@ function MainLayout() {
         <button
           type="button"
           id="tab"
-          className={`tab-dashboard ${
-            activeTab === 'dashboard' ? 'active' : ''
-          }`}
+          className={`tab-dashboard ${activeTab === 'dashboard' ? 'active' : ''
+            }`}
           onClick={() => handleTabClick('dashboard')}
         >
           Dashboard
@@ -87,9 +86,8 @@ function MainLayout() {
         <button
           type="button"
           id="tab"
-          className={`tab-statistics ${
-            activeTab === 'statistics' ? 'active' : ''
-          }`}
+          className={`tab-statistics ${activeTab === 'statistics' ? 'active' : ''
+            }`}
           onClick={() => handleTabClick('statistics')}
         >
           Statistics
@@ -113,9 +111,8 @@ function MainLayout() {
         <button
           type="button"
           id="tab"
-          className={`tab-budgetTargets ${
-            activeTab === 'budgetTargets' ? 'active' : ''
-          }`}
+          className={`tab-budgetTargets ${activeTab === 'budgetTargets' ? 'active' : ''
+            }`}
           onClick={() => handleTabClick('budgetTargets')}
         >
           Budget Targets
@@ -127,7 +124,7 @@ function MainLayout() {
       {activeTab === 'expenses' && <ExpensesView />}
       {activeTab === 'income' && <IncomeView />}
       {activeTab === 'budgetTargets' && <BudgetTargetsView />}
-      </div>
+    </div>
   );
 }
 
@@ -137,14 +134,14 @@ const queryClient = new QueryClient()
 export default function App() {
   return (
     <ThemeProvider theme={darkTheme}>
-    <QueryClientProvider client={queryClient}>
-    <Router>
-      <Routes>
-        <Route path="/" element={<MainLayout />} />
-      </Routes>
-    </Router>
+      <QueryClientProvider client={queryClient}>
+        <Router>
+          <Routes>
+            <Route path="/" element={<MainLayout />} />
+          </Routes>
+        </Router>
 
-    </QueryClientProvider>
+      </QueryClientProvider>
     </ThemeProvider>
   );
 }

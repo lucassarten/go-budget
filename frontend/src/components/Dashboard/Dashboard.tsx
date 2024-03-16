@@ -339,14 +339,14 @@ function IncomeEarningSavingsComparison(transactions: db.Transaction[]) {
             display: true,
             offset: true,
             grid: {
-                color: 'grey',
+              color: 'grey',
             },
           },
           y: {
             display: true,
             offset: true,
             grid: {
-                color: 'grey',
+              color: 'grey',
             },
           },
         },
@@ -390,16 +390,14 @@ function budgetComparisonBarChart(
   const labels = periods.map((period) => {
     const periodStart = new Date(
       timePeriod.endDate.getTime() -
-        timePeriodLength * (periods.indexOf(period) + 1)
+      timePeriodLength * (periods.indexOf(period) + 1)
     );
     const periodEnd = new Date(
       timePeriod.endDate.getTime() - timePeriodLength * periods.indexOf(period)
     );
-    return `${
-      periodStart.getMonth() + 1
-    }/${periodStart.getDate()}/${periodStart.getFullYear()} - ${
-      periodEnd.getMonth() + 1
-    }/${periodEnd.getDate()}/${periodEnd.getFullYear()}`;
+    return `${periodStart.getMonth() + 1
+      }/${periodStart.getDate()}/${periodStart.getFullYear()} - ${periodEnd.getMonth() + 1
+      }/${periodEnd.getDate()}/${periodEnd.getFullYear()}`;
   });
   let budget = 0;
   if (category) {
@@ -481,14 +479,14 @@ function budgetComparisonBarChart(
             display: true,
             offset: true,
             grid: {
-                color: 'grey',
+              color: 'grey',
             },
           },
           y: {
             display: true,
             offset: true,
             grid: {
-                color: 'grey',
+              color: 'grey',
             },
           },
         },
@@ -628,6 +626,17 @@ function Dashboard() {
   useEffect(() => {
     // get transactions from db between time period
     QueryTransactions(`SELECT * FROM Transactions where category <> '🚫 Ignore'`, []).then((resp: db.Transaction[]) => {
+      // calc reimbursements
+      resp.forEach((transaction) => {
+        if (transaction.reimbursedBy) {
+          const reimbursedTransaction = resp.find((item) => item.id === transaction.reimbursedBy);
+          if (reimbursedTransaction) {
+            transaction.amount = Math.min(transaction.amount + reimbursedTransaction.amount, 0);
+          }
+        }
+      });
+      // remove reimbursed transaction from list
+      resp = resp.filter((transaction) => transaction.category !== '🔁 Reimbursement');
       setTransactionsAll(resp);
       if (resp != null && resp.length > 0) {
         // filter out transactions that are not in the time period
