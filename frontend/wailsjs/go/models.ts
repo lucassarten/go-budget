@@ -23,6 +23,7 @@ export namespace db {
 	    description: string;
 	    amount: number;
 	    category: string;
+	    reimbursedBy?: number;
 	
 	    static createFrom(source: any = {}) {
 	        return new Transaction(source);
@@ -35,6 +36,7 @@ export namespace db {
 	        this.description = source["description"];
 	        this.amount = source["amount"];
 	        this.category = source["category"];
+	        this.reimbursedBy = source["reimbursedBy"];
 	    }
 	}
 

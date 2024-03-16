@@ -48,7 +48,9 @@ func (db *Db) Startup(ctx context.Context) {
 			date TEXT NOT NULL,
 			description TEXT,
 			amount INTEGER NOT NULL,
-			category TEXT
+			category TEXT,
+			reimbursed_by INTEGER,
+			FOREIGN KEY (reimbursed_by) REFERENCES Transactions(id) ON DELETE SET NULL
 		)
 	`, nil)
 	if err != nil {
@@ -126,7 +128,7 @@ func (db *Db) Startup(ctx context.Context) {
 				('💰 Job', 0, '#96d289'),
 				('🎁 Gift', 0, '#a9e99b'),
 				('💲 Tax refund', 0, '#bbefa9'),
-				('🔁 Expense reimbursement', 0, '#cdf5b7'),
+				('🔁 Reimbursement', 0, '#cdf5b7'),
 				('🪙 Student allowance', 0, '#dbfdd8'),
 				('📈 Investment return', 0, '#ffcae9'),
 				('🚫 Ignore', 0, '#fc035e'),
@@ -161,6 +163,20 @@ func (db *Db) Startup(ctx context.Context) {
 			INSERT INTO CategoriesIncome (name, target, colour)
 			VALUES
 				('🚫 Ignore', 0, '#fc035e')
+			`, nil)
+		if err != nil {
+			panic(err)
+		}
+	}
+	count, err = db.QueryRowCount("SELECT COUNT(*) FROM CategoriesIncome WHERE name = '🔁 Reimbursement'", nil)
+	if err != nil {
+		panic(err)
+	}
+	if count == 0 {
+		err = db.Exec(`
+			INSERT INTO CategoriesIncome (name, target, colour)
+			VALUES
+			('🔁 Reimbursement', 0, '#cdf5b7')
 			`, nil)
 		if err != nil {
 			panic(err)
@@ -267,7 +283,7 @@ func (db *Db) QueryTransaction(query string, args []interface{}) (Transaction, e
 	}
 	// cast to Transaction
 	transaction := Transaction{}
-	err = res.Scan(&transaction.ID, &transaction.Date, &transaction.Description, &transaction.Amount, &transaction.Category)
+	err = res.Scan(&transaction.ID, &transaction.Date, &transaction.Description, &transaction.Amount, &transaction.Category, &transaction.ReimbursedBy)
 	if err != nil {
 		return Transaction{}, err
 	}
@@ -286,7 +302,7 @@ func (db *Db) QueryTransactions(query string, args []interface{}) ([]Transaction
 	transactions := []Transaction{}
 	for res.Next() {
 		var transaction Transaction
-		err = res.Scan(&transaction.ID, &transaction.Date, &transaction.Description, &transaction.Amount, &transaction.Category)
+		err = res.Scan(&transaction.ID, &transaction.Date, &transaction.Description, &transaction.Amount, &transaction.Category, &transaction.ReimbursedBy)
 		if err != nil {
 			return []Transaction{}, err
 		}

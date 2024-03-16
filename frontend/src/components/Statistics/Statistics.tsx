@@ -251,16 +251,12 @@ function StatisticsSummary(
               <TableCell>
                 <div className="statistics-table-header">Summary</div>
               </TableCell>
-              <TableCell>{`${
-                previousTimePeriod.startDate.getDate()
-              }/${previousTimePeriod.startDate.getMonth() + 1}/${previousTimePeriod.startDate.getFullYear()} - ${
-                previousTimePeriod.endDate.getDate()
-              }/${previousTimePeriod.endDate.getMonth() + 1}/${previousTimePeriod.endDate.getFullYear()}`}</TableCell>
-              <TableCell>{`${
-                timePeriod.startDate.getDate()
-              }/${timePeriod.startDate.getMonth() + 1}/${timePeriod.startDate.getFullYear()} - ${
-                timePeriod.endDate.getDate()
-              }/${timePeriod.endDate.getMonth() + 1}/${timePeriod.endDate.getFullYear()}`}</TableCell>
+              <TableCell>{`${previousTimePeriod.startDate.getDate()
+                }/${previousTimePeriod.startDate.getMonth() + 1}/${previousTimePeriod.startDate.getFullYear()} - ${previousTimePeriod.endDate.getDate()
+                }/${previousTimePeriod.endDate.getMonth() + 1}/${previousTimePeriod.endDate.getFullYear()}`}</TableCell>
+              <TableCell>{`${timePeriod.startDate.getDate()
+                }/${timePeriod.startDate.getMonth() + 1}/${timePeriod.startDate.getFullYear()} - ${timePeriod.endDate.getDate()
+                }/${timePeriod.endDate.getMonth() + 1}/${timePeriod.endDate.getFullYear()}`}</TableCell>
               <TableCell>Change</TableCell>
             </TableRow>
           </TableHead>
@@ -402,16 +398,12 @@ function StatisticsByCategory(
                   </div>
                 </TableCell>
 
-                <TableCell>{`${
-                  previousTimePeriod.startDate.getDate() 
-                }/${previousTimePeriod.startDate.getMonth()+ 1}/${previousTimePeriod.startDate.getFullYear()} - ${
-                  previousTimePeriod.endDate.getDate()
-                }/${previousTimePeriod.endDate.getMonth() + 1}/${previousTimePeriod.endDate.getFullYear()}`}</TableCell>
-                <TableCell>{`${
-                  timePeriod.startDate.getDate()
-                }/${timePeriod.startDate.getMonth() + 1}/${timePeriod.startDate.getFullYear()} - ${
-                  timePeriod.endDate.getDate()
-                }/${timePeriod.endDate.getMonth() + 1}/${timePeriod.endDate.getFullYear()}`}</TableCell>
+                <TableCell>{`${previousTimePeriod.startDate.getDate()
+                  }/${previousTimePeriod.startDate.getMonth() + 1}/${previousTimePeriod.startDate.getFullYear()} - ${previousTimePeriod.endDate.getDate()
+                  }/${previousTimePeriod.endDate.getMonth() + 1}/${previousTimePeriod.endDate.getFullYear()}`}</TableCell>
+                <TableCell>{`${timePeriod.startDate.getDate()
+                  }/${timePeriod.startDate.getMonth() + 1}/${timePeriod.startDate.getFullYear()} - ${timePeriod.endDate.getDate()
+                  }/${timePeriod.endDate.getMonth() + 1}/${timePeriod.endDate.getFullYear()}`}</TableCell>
                 <TableCell>Change</TableCell>
               </TableRow>
             </TableHead>
@@ -455,8 +447,8 @@ function StatisticsByCategory(
                               ? 'green'
                               : 'red'
                             : totalCategoryChange > 0
-                            ? 'green'
-                            : 'red',
+                              ? 'green'
+                              : 'red',
                       }}
                     >
                       {formatCurrency(totalCategoryChange)} (
@@ -483,15 +475,26 @@ function Statistics() {
   });
   useEffect(() => {
     // get transactions from db between time period
-    QueryTransactions("SELECT * FROM Transactions where category <> '🚫 Ignore'", []).then((response: db.Transaction[]) => {
-      setTransactionsAll(response);
+    QueryTransactions("SELECT * FROM Transactions where category <> '🚫 Ignore'", []).then((resp: db.Transaction[]) => {
+      // calc reimbursements
+      resp.forEach((transaction) => {
+        if (transaction.reimbursedBy) {
+          const reimbursedTransaction = resp.find((item) => item.id === transaction.reimbursedBy);
+          if (reimbursedTransaction) {
+            transaction.amount = Math.min(transaction.amount + reimbursedTransaction.amount, 0);
+          }
+        }
+      });
+      // remove reimbursed transaction from list
+      resp = resp.filter((transaction) => transaction.category !== '🔁 Reimbursement');
+      setTransactionsAll(resp);
     });
     // get categories from db
-    QueryCategories("SELECT * FROM CategoriesIncome where name <> '🚫 Ignore'", []).then((response: db.Category[]) => {
-      setCategoriesIncome(response);
+    QueryCategories("SELECT * FROM CategoriesIncome where name <> '🚫 Ignore'", []).then((resp: db.Category[]) => {
+      setCategoriesIncome(resp);
     });
-    QueryCategories("SELECT * FROM CategoriesExpense where name <> '🚫 Ignore'", []).then((response: db.Category[]) => {
-      setCategoriesExpense(response);
+    QueryCategories("SELECT * FROM CategoriesExpense where name <> '🚫 Ignore'", []).then((resp: db.Category[]) => {
+      setCategoriesExpense(resp);
     });
   }, [timePeriod]);
   if (timePeriod === undefined || transactionsAll === undefined) {
