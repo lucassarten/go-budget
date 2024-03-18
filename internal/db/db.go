@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"math/rand"
+	"time"
 
 	//"log"
 
@@ -25,22 +27,17 @@ func NewDb(dbPath string) *Db {
 
 func (db *Db) Startup(ctx context.Context) {
 	db.ctx = ctx
-	// open the database
-	// log.Println("Opening database:", db.dbPath)
+
 	err := db.Open()
 	if err != nil {
 		panic(err)
 	}
-	// log.Println("Successfully opened database:", db.dbPath)
 
-	// set database date format to DD-MM-YYYY
-	// log.Println("Setting database date format to DD-MM-YYYY")
 	err = db.Exec("PRAGMA date_class = 'yyyy-mm-dd';", nil)
 	if err != nil {
 		panic(err)
 	}
 
-	// log.Println("Creating tables if they don't exist")
 	// Create tables
 	err = db.Exec(`
 		CREATE TABLE IF NOT EXISTS Transactions (
@@ -76,141 +73,85 @@ func (db *Db) Startup(ctx context.Context) {
 	if err != nil {
 		panic(err)
 	}
-	// log.Println("finished creating tables")
 
 	// Insert default values if CategoriesExpense table is empty
-	// log.Println("Inserting default values if CategoriesExpense table is empty")
 	count, err := db.QueryRowCount("SELECT COUNT(*) FROM CategoriesExpense", nil)
 	if err != nil {
 		panic(err)
 	}
 	if count == 0 {
-		// log.Println("Inserting default values into CategoriesExpense table")
-		err = db.Exec(`
-			INSERT INTO CategoriesExpense (name, target, colour)
-			VALUES
-				('🍞 Groceries', 0, '#9ba9ff'),
-				('💲 Rent', 0, '#a5adff'),
-				('⚡ Power', 0, '#afb1ff'),
-				('🌐 Internet', 0, '#b9b5ff'),
-				('🏠 Household', 0, '#c4baff'),
-				('🍽️ Restaurant', 0, '#cebeff'),
-				('😎 Leisure', 0, '#d8c2ff'),
-				('🚌 Public transportation', 0, '#e2c6ff'),
-				('📈 Investment', 0, '#eccaff'),
-				('📱 Phone', 0, '#c4c7ff'),
-				('👕 Clothing', 0, '#c1cdf9'),
-				('💋 Vanity', 0, '#c0e1f9'),
-				('🚑 Medical', 0, '#bbdef9'),
-				('✈️ Travel', 0, '#acdcff'),
-				('🔔 Subscription', 0, '#9cd2f7'),
-				('🎁 Gifts', 0, '#89ccf6'),
-				('💸 Debt', 0, '#6aa1f4'),
-				('🚫 Ignore', 0, '#fc035e'),
-				('❓ Other', 0, '#5d97d1')
-		`, nil)
-		if err != nil {
-			panic(err)
+		// Insert values from defaultCategoriesExpense
+		for _, category := range defaultCategoriesExpense {
+			err = db.Exec(`
+				INSERT INTO CategoriesExpense (name, target, colour)
+				VALUES (?, ?, ?)
+			`, []interface{}{category.Name, category.Target, category.Colour})
+			if err != nil {
+				panic(err)
+			}
 		}
 	}
 
 	// Insert default values if CategoriesIncome table is empty
-	// log.Println("Inserting default values if CategoriesIncome table is empty")
 	count, err = db.QueryRowCount("SELECT COUNT(*) FROM CategoriesIncome", nil)
 	if err != nil {
 		panic(err)
 	}
 	if count == 0 {
-		// log.Println("Inserting default values into CategoriesIncome table")
-		err = db.Exec(`
-			INSERT INTO CategoriesIncome (name, target, colour)
-			VALUES
-				('💰 Job', 0, '#96d289'),
-				('🎁 Gift', 0, '#a9e99b'),
-				('💲 Tax refund', 0, '#bbefa9'),
-				('🔁 Reimbursement', 0, '#cdf5b7'),
-				('🪙 Student allowance', 0, '#dbfdd8'),
-				('📈 Investment return', 0, '#ffcae9'),
-				('🚫 Ignore', 0, '#fc035e'),
-				('❓ Other', 0, '#ffa8d9')
-		`, nil)
-		if err != nil {
-			panic(err)
+		// Insert values from defaultCategoriesIncome
+		for _, category := range defaultCategoriesIncome {
+			err = db.Exec(`
+				INSERT INTO CategoriesIncome (name, target, colour)
+				VALUES (?, ?, ?)
+			`, []interface{}{category.Name, category.Target, category.Colour})
+			if err != nil {
+				panic(err)
+			}
 		}
 	}
 
-	// Insert Credit Card and Other into expenses and income if not present
-	count, err = db.QueryRowCount("SELECT COUNT(*) FROM CategoriesExpense WHERE name = '🚫 Ignore'", nil)
-	if err != nil {
-		panic(err)
-	}
-	if count == 0 {
-		err = db.Exec(`
-			INSERT INTO CategoriesExpense (name, target, colour)
-			VALUES
-				('🚫 Ignore', 0, '#fc035e')
-			`, nil)
+	// Insert required categories into CategoriesExpense and CategoriesIncome if they don't exist
+	for _, category := range requiredCategories {
+		count, err = db.QueryRowCount("SELECT COUNT(*) FROM CategoriesExpense WHERE name = ?", []interface{}{category.Name})
 		if err != nil {
 			panic(err)
 		}
-	}
-	count, err = db.QueryRowCount("SELECT COUNT(*) FROM CategoriesIncome WHERE name = '🚫 Ignore'", nil)
-	if err != nil {
-		panic(err)
-	}
-	if count == 0 {
-		err = db.Exec(`
-			INSERT INTO CategoriesIncome (name, target, colour)
-			VALUES
-				('🚫 Ignore', 0, '#fc035e')
-			`, nil)
+		if count == 0 {
+			err = db.Exec(`
+				INSERT INTO CategoriesExpense (name, target, colour)
+				VALUES (?, ?, ?)
+			`, []interface{}{category.Name, category.Target, category.Colour})
+			if err != nil {
+				panic(err)
+			}
+		}
+		count, err = db.QueryRowCount("SELECT COUNT(*) FROM CategoriesIncome WHERE name = ?", []interface{}{category.Name})
 		if err != nil {
 			panic(err)
 		}
-	}
-	count, err = db.QueryRowCount("SELECT COUNT(*) FROM CategoriesIncome WHERE name = '🔁 Reimbursement'", nil)
-	if err != nil {
-		panic(err)
-	}
-	if count == 0 {
-		err = db.Exec(`
-			INSERT INTO CategoriesIncome (name, target, colour)
-			VALUES
-			('🔁 Reimbursement', 0, '#cdf5b7')
-			`, nil)
-		if err != nil {
-			panic(err)
+		if count == 0 {
+			err = db.Exec(`
+				INSERT INTO CategoriesIncome (name, target, colour)
+				VALUES (?, ?, ?)
+			`, []interface{}{category.Name, category.Target, category.Colour})
+			if err != nil {
+				panic(err)
+			}
 		}
 	}
-	count, err = db.QueryRowCount("SELECT COUNT(*) FROM CategoriesExpense WHERE name = '❓ Other'", nil)
-	if err != nil {
-		panic(err)
-	}
-	if count == 0 {
-		err = db.Exec(`
-			INSERT INTO CategoriesExpense (name, target, colour)
-			VALUES
-				('❓ Other', 0, '#5d97d1')
-			`, nil)
-		if err != nil {
-			panic(err)
+
+	// if dev.db
+	if db.dbPath == "dev.db" {
+		for _, t := range generateTestExpenses() {
+			err = db.Exec(`
+				INSERT INTO Transactions (date, description, amount, category)
+				VALUES (?, ?, ?, ?)
+			`, []interface{}{t.Date, t.Description, t.Amount, t.Category})
+			if err != nil {
+				panic(err)
+			}
 		}
 	}
-	count, err = db.QueryRowCount("SELECT COUNT(*) FROM CategoriesIncome WHERE name = '❓ Other'", nil)
-	if err != nil {
-		panic(err)
-	}
-	if count == 0 {
-		err = db.Exec(`
-			INSERT INTO CategoriesIncome (name, target, colour)
-			VALUES
-				('❓ Other', 0, '#5d97d1')
-			`, nil)
-		if err != nil {
-			panic(err)
-		}
-	}
-	// log.Println("Finished db setup")
 }
 
 func (db *Db) BeforeClose(ctx context.Context) bool {
@@ -362,4 +303,85 @@ func (db *Db) QueryRowCount(query string, args []interface{}) (int64, error) {
 		return 0, err
 	}
 	return count, nil
+}
+
+// TESTING
+
+// GenerateTestTransactions generates test transactions for expenses and incomes
+func GenerateTestTransactions() []Transaction {
+	// Generate test expenses
+	expenses := generateTestExpenses()
+
+	// Generate test incomes
+	incomes := generateTestIncomes()
+
+	return append(expenses, incomes...)
+}
+
+func generateTestExpenses() []Transaction {
+	var expenses []Transaction
+
+	// Generate 50 test expense transactions
+	for i := 0; i < 50; i++ {
+		// Randomly select an expense category
+		categoryIndex := rand.Intn(len(defaultCategoriesExpense))
+		category := defaultCategoriesExpense[categoryIndex].Name
+
+		// Generate a random amount between 10 and 500
+		amount := rand.Float64()*490 + 10
+
+		// Generate a random date within the last 90 days
+		date := generateRandomDate()
+
+		expense := Transaction{
+			ID:          i + 1,
+			Date:        date,
+			Description: fmt.Sprintf("Expense #%d", i+1),
+			Amount:      amount,
+			Category:    category,
+		}
+
+		expenses = append(expenses, expense)
+	}
+
+	return expenses
+}
+
+func generateTestIncomes() []Transaction {
+	var incomes []Transaction
+
+	// Generate 50 test income transactions
+	for i := 0; i < 50; i++ {
+		// Randomly select an income category
+		categoryIndex := rand.Intn(len(defaultCategoriesIncome))
+		category := defaultCategoriesIncome[categoryIndex].Name
+
+		// Generate a random amount between 100 and 1000
+		amount := rand.Float64()*900 + 100
+
+		// Generate a random date within the last 90 days
+		date := generateRandomDate()
+
+		income := Transaction{
+			ID:          i + 1,
+			Date:        date,
+			Description: fmt.Sprintf("Income #%d", i+1),
+			Amount:      amount,
+			Category:    category,
+		}
+
+		incomes = append(incomes, income)
+	}
+
+	return incomes
+}
+
+func generateRandomDate() string {
+	min := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC).Unix()
+	max := time.Now().Unix()
+	delta := max - min
+
+	// Generate a random date within the last 90 days
+	sec := rand.Int63n(delta) + min
+	return time.Unix(sec, 0).Format("2006-01-02")
 }

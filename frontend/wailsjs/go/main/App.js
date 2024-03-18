@@ -6,6 +6,10 @@ export function Categorize(arg1, arg2, arg3) {
   return window['go']['main']['App']['Categorize'](arg1, arg2, arg3);
 }
 
+export function CategorizeUncategorized(arg1, arg2) {
+  return window['go']['main']['App']['CategorizeUncategorized'](arg1, arg2);
+}
+
 export function LoadFile(arg1, arg2) {
   return window['go']['main']['App']['LoadFile'](arg1, arg2);
 }
