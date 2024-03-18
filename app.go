@@ -67,3 +67,33 @@ func (a *App) Categorize(ctx context.Context, db *dbPkg.Db, toCategorize []dbPkg
 	categorized := models.Categorize(transactions, toCategorize)
 	return categorized, nil
 }
+
+func (a *App) CategorizeUncategorized(ctx context.Context, db *dbPkg.Db) error {
+	a.ctx = ctx
+	// Get transactions from db
+	transactionsToClassify, err := db.QueryTransactions("SELECT * FROM transactions WHERE category = '❗ Uncategorized'", nil)
+	if err != nil {
+		return err
+	}
+	// Categorize transactions
+	categorized, err := a.Categorize(ctx, db, transactionsToClassify)
+	if err != nil {
+		return err
+	}
+	// Update db
+	for _, transaction := range categorized {
+		err = db.Exec(`
+			UPDATE Transactions SET category = ? WHERE id = ?
+		`, []interface{}{transaction.Category, transaction.ID})
+		if err != nil {
+			return err
+		}
+	}
+	// alert number of categorized
+	runtime.MessageDialog(ctx, runtime.MessageDialogOptions{
+		Type:    runtime.InfoDialog,
+		Title:   "Categorization Complete",
+		Message: "Categorized " + string(rune(len(categorized))) + " transactions",
+	})
+	return nil
+}
