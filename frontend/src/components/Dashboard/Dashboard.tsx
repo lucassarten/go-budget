@@ -14,21 +14,7 @@ import { db } from "../../../wailsjs/go/models";
 import CategorySelector from '../Selectors/CategorySelector';
 import IntervalSelector from '../Selectors/IntervalSelector';
 import TimePeriodSelector from '../Selectors/TimePeriodSelector';
-
-export interface TimePeriod {
-  startDate: Date;
-  endDate: Date;
-  period: string;
-}
-
-const formatCurrency = (value: number) => {
-  const formatter = new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'NZD',
-    currencyDisplay: 'symbol',
-  });
-  return formatter.format(value);
-};
+import { formatCurrency, formatDate } from '../../Utils/Formatters';
 
 Chart.register(...registerables, ChartDataLabels, annotationPlugin);
 
@@ -366,27 +352,9 @@ function movePeriodBackward(periodStart: Date, periodEnd: Date, periodType: stri
   return { startDate: periodStart, endDate: periodEnd, period: periodType };
 }
 
-function formatDate(date: Date): string {
-  return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
-}
-
 function getTimePeriodFactor(timePeriod: TimePeriod): number {
   const timePeriodLength = timePeriod.endDate.getTime() - timePeriod.startDate.getTime();
   return timePeriodLength / (1000 * 60 * 60 * 24 * 30.5); // Assuming a month has 30.5 days
-}
-
-function GetDefaultPeriod(): TimePeriod {
-  const startDateCalc = new Date();
-  startDateCalc.setDate(startDateCalc.getDate() - startDateCalc.getDay() + 1);
-  const endDateCalc = new Date(startDateCalc);
-  endDateCalc.setDate(endDateCalc.getDate() + 6);
-  startDateCalc.setHours(0, 0, 0, 0);
-  endDateCalc.setHours(23, 59, 59, 999);
-  return {
-    startDate: startDateCalc,
-    endDate: endDateCalc,
-    period: 'week',
-  };
 }
 
 function Dashboard() {
@@ -532,6 +500,26 @@ function Dashboard() {
       </div>
     </div>
   );
+}
+
+export interface TimePeriod {
+  startDate: Date;
+  endDate: Date;
+  period: string;
+}
+
+export function GetDefaultPeriod(): TimePeriod {
+  const startDateCalc = new Date();
+  startDateCalc.setDate(startDateCalc.getDate() - startDateCalc.getDay() + 1);
+  const endDateCalc = new Date(startDateCalc);
+  endDateCalc.setDate(endDateCalc.getDate() + 6);
+  startDateCalc.setHours(0, 0, 0, 0);
+  endDateCalc.setHours(23, 59, 59, 999);
+  return {
+    startDate: startDateCalc,
+    endDate: endDateCalc,
+    period: 'week',
+  };
 }
 
 export default Dashboard;

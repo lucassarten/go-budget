@@ -31,80 +31,79 @@ function TimePeriodSelector({ onTimePeriodChange }: TimePeriodSelectorProps) {
 
   const handleOptionChange = (event: SelectChangeEvent<string>) => {
     setSelectedOption(event.target.value);
-    // print start end dates
-    let startDateCalc = new Date(0);
-    const endDateCalc = new Date();
+    let startDateCalc, endDateCalc;
+
     switch (event.target.value) {
       case 'lastWeek':
-        startDateCalc = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-        onTimePeriodChange({
-          startDate: startDateCalc,
-          endDate: endDateCalc,
-          period: 'week',
-        });
+        startDateCalc = new Date();
+        startDateCalc.setDate(startDateCalc.getDate() - startDateCalc.getDay() + 1);
+        endDateCalc = new Date(startDateCalc);
+        endDateCalc.setDate(endDateCalc.getDate() + 6);
         break;
       case 'lastMonth':
-        startDateCalc = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-        onTimePeriodChange({
-          startDate: startDateCalc,
-          endDate: endDateCalc,
-          period: 'month',
-        });
-        setStartDate(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
+        startDateCalc = new Date();
+        startDateCalc.setDate(1);
+        endDateCalc = new Date(startDateCalc);
+        endDateCalc.setMonth(endDateCalc.getMonth() + 1);
+        endDateCalc.setDate(endDateCalc.getDate() - 1);
         break;
       case 'lastThreeMonths':
-        startDateCalc = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
-        onTimePeriodChange({
-          startDate: startDateCalc,
-          endDate: endDateCalc,
-          period: 'month',
-        });
+        startDateCalc = new Date();
+        startDateCalc.setDate(1);
+        startDateCalc.setMonth(startDateCalc.getMonth() - 2);
+        endDateCalc = new Date(startDateCalc);
+        endDateCalc.setMonth(endDateCalc.getMonth() + 3);
+        endDateCalc.setDate(endDateCalc.getDate() - 1);
         break;
       case 'lastSixMonths':
-        startDateCalc = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000);
-        onTimePeriodChange({
-          startDate: startDateCalc,
-          endDate: endDateCalc,
-          period: 'month',
-        });
+        startDateCalc = new Date();
+        startDateCalc.setDate(1);
+        startDateCalc.setMonth(startDateCalc.getMonth() - 5);
+        endDateCalc = new Date(startDateCalc);
+        endDateCalc.setMonth(endDateCalc.getMonth() + 6);
+        endDateCalc.setDate(endDateCalc.getDate() - 1);
         break;
       case 'lastYear':
-        startDateCalc = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
-        onTimePeriodChange({
-          startDate: startDateCalc,
-          endDate: endDateCalc,
-          period: 'year',
-        });
+        startDateCalc = new Date();
+        startDateCalc.setMonth(0);
+        startDateCalc.setDate(1);
+        endDateCalc = new Date(startDateCalc);
+        endDateCalc.setFullYear(endDateCalc.getFullYear() + 1);
+        endDateCalc.setDate(endDateCalc.getDate() - 1);
         break;
       case 'custom':
-        // do nothing, wait for user to select custom dates
+        startDateCalc = startDate;
+        endDateCalc = endDate;
         break;
       default:
-        onTimePeriodChange({
-          startDate: startDateCalc,
-          endDate: endDateCalc,
-          period: 'unknown',
-        });
+        startDateCalc = new Date();
+        startDateCalc.setDate(startDateCalc.getDate() - startDateCalc.getDay() + 1);
+        endDateCalc = new Date(startDateCalc);
+        endDateCalc.setDate(endDateCalc.getDate() + 6);
         break;
     }
-    setStartDate(startDateCalc);
-    setEndDate(endDateCalc);
-  };
+    startDateCalc.setHours(0, 0, 0, 0);
+    endDateCalc.setHours(23, 59, 59, 999);
 
-  const handleCustomDatesChange = () => {
     onTimePeriodChange({
-      startDate,
-      endDate,
-      period: 'custom',
+      startDate: startDateCalc,
+      endDate: endDateCalc,
+      period: event.target.value,
     });
   };
 
   const handleStartDateChange = (date: Date) => {
     setStartDate(date);
+    handleOptionChange({
+      target: { value: 'custom' },
+    } as SelectChangeEvent<string>);
   };
 
   const handleEndDateChange = (date: Date) => {
     setEndDate(date);
+    handleOptionChange({
+      target: { value: 'custom' },
+    } as SelectChangeEvent<string>);
   };
 
   return (
@@ -134,7 +133,11 @@ function TimePeriodSelector({ onTimePeriodChange }: TimePeriodSelectorProps) {
           id="startDatePicker"
           onChange={(e) => {
             handleStartDateChange(new Date(e.target.value));
-            handleCustomDatesChange();
+          }}
+          onBlur={(e) => {
+            handleOptionChange({
+              target: { value: 'custom' },
+            } as SelectChangeEvent<string>);
           }}
           type="date"
           InputLabelProps={{
@@ -150,7 +153,11 @@ function TimePeriodSelector({ onTimePeriodChange }: TimePeriodSelectorProps) {
           id="endDatePicker"
           onChange={(e) => {
             handleEndDateChange(new Date(e.target.value));
-            handleCustomDatesChange();
+          }}
+          onBlur={(e) => {
+            handleOptionChange({
+              target: { value: 'custom' },
+            } as SelectChangeEvent<string>);
           }}
           type="date"
           InputLabelProps={{

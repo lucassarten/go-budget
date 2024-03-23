@@ -59,8 +59,6 @@ function IntervalSelector({ onIntervalChange }: IntervalSelectorProps) {
     startDateCalc.setHours(0, 0, 0, 0);
     endDateCalc.setHours(23, 59, 59, 999);
 
-    console.log(startDateCalc, endDateCalc);
-
     onIntervalChange({
       startDate: startDateCalc,
       endDate: endDateCalc,
