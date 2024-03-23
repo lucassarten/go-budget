@@ -20,45 +20,52 @@ function IntervalSelector({ onIntervalChange }: IntervalSelectorProps) {
 
   const handleOptionChange = (event: SelectChangeEvent<string>) => {
     setSelectedOption(event.target.value);
-    // print start end dates
-    let startDateCalc = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    const endDateCalc = new Date();
+    let startDateCalc, endDateCalc;
+
     switch (event.target.value) {
       case 'day':
-        startDateCalc = new Date(Date.now() - 24 * 60 * 60 * 1000);
-        onIntervalChange({
-          startDate: startDateCalc,
-          endDate: endDateCalc,
-        });
+        endDateCalc = new Date();
+        startDateCalc = new Date();
+        startDateCalc.setDate(startDateCalc.getDate() - 1);
         break;
       case 'week':
-        startDateCalc = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-        onIntervalChange({
-          startDate: startDateCalc,
-          endDate: endDateCalc,
-        });
+        startDateCalc = new Date();
+        startDateCalc.setDate(startDateCalc.getDate() - startDateCalc.getDay() + 1);
+        endDateCalc = new Date(startDateCalc);
+        endDateCalc.setDate(endDateCalc.getDate() + 6);
         break;
       case 'month':
-        startDateCalc = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-        onIntervalChange({
-          startDate: startDateCalc,
-          endDate: endDateCalc,
-        });
+        startDateCalc = new Date();
+        startDateCalc.setDate(1);
+        endDateCalc = new Date(startDateCalc);
+        endDateCalc.setMonth(endDateCalc.getMonth() + 1);
+        endDateCalc.setDate(endDateCalc.getDate() - 1);
         break;
       case 'year':
-        startDateCalc = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
-        onIntervalChange({
-          startDate: startDateCalc,
-          endDate: endDateCalc,
-        });
+        startDateCalc = new Date();
+        startDateCalc.setMonth(0);
+        startDateCalc.setDate(1);
+        endDateCalc = new Date(startDateCalc);
+        endDateCalc.setFullYear(endDateCalc.getFullYear() + 1);
+        endDateCalc.setDate(endDateCalc.getDate() - 1);
         break;
       default:
-        onIntervalChange({
-          startDate: startDateCalc,
-          endDate: endDateCalc,
-        });
+        startDateCalc = new Date();
+        startDateCalc.setDate(startDateCalc.getDate() - startDateCalc.getDay() + 1);
+        endDateCalc = new Date(startDateCalc);
+        endDateCalc.setDate(endDateCalc.getDate() + 6);
         break;
     }
+    startDateCalc.setHours(0, 0, 0, 0);
+    endDateCalc.setHours(23, 59, 59, 999);
+
+    console.log(startDateCalc, endDateCalc);
+
+    onIntervalChange({
+      startDate: startDateCalc,
+      endDate: endDateCalc,
+      period: event.target.value,
+    });
   };
 
   return (

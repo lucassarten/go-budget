@@ -40,6 +40,7 @@ function TimePeriodSelector({ onTimePeriodChange }: TimePeriodSelectorProps) {
         onTimePeriodChange({
           startDate: startDateCalc,
           endDate: endDateCalc,
+          period: 'week',
         });
         break;
       case 'lastMonth':
@@ -47,6 +48,7 @@ function TimePeriodSelector({ onTimePeriodChange }: TimePeriodSelectorProps) {
         onTimePeriodChange({
           startDate: startDateCalc,
           endDate: endDateCalc,
+          period: 'month',
         });
         setStartDate(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
         break;
@@ -55,6 +57,7 @@ function TimePeriodSelector({ onTimePeriodChange }: TimePeriodSelectorProps) {
         onTimePeriodChange({
           startDate: startDateCalc,
           endDate: endDateCalc,
+          period: 'month',
         });
         break;
       case 'lastSixMonths':
@@ -62,6 +65,7 @@ function TimePeriodSelector({ onTimePeriodChange }: TimePeriodSelectorProps) {
         onTimePeriodChange({
           startDate: startDateCalc,
           endDate: endDateCalc,
+          period: 'month',
         });
         break;
       case 'lastYear':
@@ -69,6 +73,7 @@ function TimePeriodSelector({ onTimePeriodChange }: TimePeriodSelectorProps) {
         onTimePeriodChange({
           startDate: startDateCalc,
           endDate: endDateCalc,
+          period: 'year',
         });
         break;
       case 'custom':
@@ -78,6 +83,7 @@ function TimePeriodSelector({ onTimePeriodChange }: TimePeriodSelectorProps) {
         onTimePeriodChange({
           startDate: startDateCalc,
           endDate: endDateCalc,
+          period: 'unknown',
         });
         break;
     }
@@ -89,6 +95,7 @@ function TimePeriodSelector({ onTimePeriodChange }: TimePeriodSelectorProps) {
     onTimePeriodChange({
       startDate,
       endDate,
+      period: 'custom',
     });
   };
 
