@@ -142,7 +142,11 @@ func (db *Db) Startup(ctx context.Context) {
 
 	// if dev.db
 	if db.dbPath == "dev.db" {
-		for _, t := range generateTestExpenses() {
+		err = db.Exec("DELETE FROM Transactions", nil)
+		if err != nil {
+			panic(err)
+		}
+		for _, t := range GenerateTestTransactions() {
 			err = db.Exec(`
 				INSERT INTO Transactions (date, description, amount, category)
 				VALUES (?, ?, ?, ?)
@@ -328,7 +332,7 @@ func generateTestExpenses() []Transaction {
 		category := defaultCategoriesExpense[categoryIndex].Name
 
 		// Generate a random amount between 10 and 500
-		amount := rand.Float64()*490 + 10
+		amount := -rand.Float64()*490 + 10
 
 		// Generate a random date within the last 90 days
 		date := generateRandomDate()
@@ -339,6 +343,25 @@ func generateTestExpenses() []Transaction {
 			Description: fmt.Sprintf("Expense #%d", i+1),
 			Amount:      amount,
 			Category:    category,
+		}
+
+		expenses = append(expenses, expense)
+	}
+
+	// 50 uncategorized expenses
+	for i := 0; i < 50; i++ {
+		// Generate a random amount between 10 and 500
+		amount := -rand.Float64()*490 + 10
+
+		// Generate a random date within the last 90 days
+		date := generateRandomDate()
+
+		expense := Transaction{
+			ID:          i + 51,
+			Date:        date,
+			Description: fmt.Sprintf("Expense #%d", i+1),
+			Amount:      amount,
+			Category:    "❗ Uncategorized",
 		}
 
 		expenses = append(expenses, expense)

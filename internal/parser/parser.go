@@ -110,7 +110,7 @@ func ImportFile(db *dbPkg.Db, fileName string, typeStr string) error {
 			Amount:      amount,
 		}
 	}
-	categorized := models.Categorize(toCategorize, transactions)
+	categorized, _ := models.Categorize(toCategorize, transactions)
 
 	// Insert into database
 	for _, row := range categorized {

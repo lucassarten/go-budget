@@ -76,9 +76,10 @@ func setupMenu(app *App, db *db.Db) *menu.Menu {
 	FileMenu := AppMenu.AddSubmenu("File")
 	FileMenu.AddText("Import", keys.CmdOrCtrl("o"), func(_ *menu.CallbackData) { app.LoadFile(app.ctx, db) })
 	FileMenu.AddSeparator()
+	FileMenu.AddText("Categorize", keys.CmdOrCtrl("c"), func(_ *menu.CallbackData) { app.CategorizeUncategorized(app.ctx, db) })
+	FileMenu.AddSeparator()
 	FileMenu.AddText("Quit", keys.CmdOrCtrl("q"), func(_ *menu.CallbackData) {
 		runtime.Quit(app.ctx)
 	})
-	AppMenu.AddText("Categorize", keys.CmdOrCtrl("c"), func(_ *menu.CallbackData) { app.CategorizeUncategorized(app.ctx, db) })
 	return AppMenu
 }

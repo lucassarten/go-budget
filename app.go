@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"strconv"
 
 	dbPkg "go-budget/internal/db"
 	"go-budget/internal/models"
@@ -56,29 +57,29 @@ func (a *App) LoadFile(ctx context.Context, db *dbPkg.Db) {
 	parser.ImportFile(db, file, "TSB")
 }
 
-func (a *App) Categorize(ctx context.Context, db *dbPkg.Db, toCategorize []dbPkg.Transaction) ([]dbPkg.Transaction, error) {
+func (a *App) Categorize(ctx context.Context, db *dbPkg.Db, toCategorize []dbPkg.Transaction) ([]dbPkg.Transaction, int, error) {
 	a.ctx = ctx
 	// Get transactions from db
 	transactions, err := db.QueryTransactions("SELECT * FROM transactions", nil)
 	if err != nil {
-		return []dbPkg.Transaction{}, err
+		return []dbPkg.Transaction{}, 0, err
 	}
 	// Categorize transactions
-	categorized := models.Categorize(transactions, toCategorize)
-	return categorized, nil
+	categorized, numCategorized := models.Categorize(transactions, toCategorize)
+	return categorized, numCategorized, nil
 }
 
-func (a *App) CategorizeUncategorized(ctx context.Context, db *dbPkg.Db) error {
+func (a *App) CategorizeUncategorized(ctx context.Context, db *dbPkg.Db) (int, error) {
 	a.ctx = ctx
 	// Get transactions from db
 	transactionsToClassify, err := db.QueryTransactions("SELECT * FROM transactions WHERE category = '❗ Uncategorized'", nil)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	// Categorize transactions
-	categorized, err := a.Categorize(ctx, db, transactionsToClassify)
+	categorized, numCategorized, err := a.Categorize(ctx, db, transactionsToClassify)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	// Update db
 	for _, transaction := range categorized {
@@ -86,14 +87,14 @@ func (a *App) CategorizeUncategorized(ctx context.Context, db *dbPkg.Db) error {
 			UPDATE Transactions SET category = ? WHERE id = ?
 		`, []interface{}{transaction.Category, transaction.ID})
 		if err != nil {
-			return err
+			return 0, err
 		}
 	}
 	// alert number of categorized
 	runtime.MessageDialog(ctx, runtime.MessageDialogOptions{
 		Type:    runtime.InfoDialog,
 		Title:   "Categorization Complete",
-		Message: "Categorized " + string(rune(len(categorized))) + " transactions",
+		Message: "Categorized " + strconv.Itoa(numCategorized) + " transactions",
 	})
-	return nil
+	return numCategorized, nil
 }
