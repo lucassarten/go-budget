@@ -18,6 +18,7 @@ import TimePeriodSelector from '../Selectors/TimePeriodSelector';
 export interface TimePeriod {
   startDate: Date;
   endDate: Date;
+  period: string;
 }
 
 const formatCurrency = (value: number) => {
@@ -204,53 +205,13 @@ function budgetComparisonBarChart(
   transactions: db.Transaction[],
   type: string
 ) {
-  // split all transactions into periods of time timePeriod long (e.g. 10 periods of 1 month each)
-  const timePeriodLength =
-    timePeriod.endDate.getTime() - timePeriod.startDate.getTime();
-  const periods: db.Transaction[][] = [];
-  for (let i = 0; i < 10; i += 1) {
-    const periodStart = new Date(
-      timePeriod.endDate.getTime() - timePeriodLength * (i + 1)
-    );
-    const periodEnd = new Date(
-      timePeriod.endDate.getTime() - timePeriodLength * i
-    );
-    const periodTransactions = transactions.filter(
-      (transaction) =>
-        new Date(transaction.date) >= periodStart &&
-        new Date(transaction.date) < periodEnd
-    );
-    periods.push(periodTransactions);
-  }
-  // generate labels for the x axis
-  const labels = periods.map((period) => {
-    const periodStart = new Date(
-      timePeriod.endDate.getTime() -
-      timePeriodLength * (periods.indexOf(period) + 1)
-    );
-    const periodEnd = new Date(
-      timePeriod.endDate.getTime() - timePeriodLength * periods.indexOf(period)
-    );
-    return `${periodStart.getMonth() + 1
-      }/${periodStart.getDate()}/${periodStart.getFullYear()} - ${periodEnd.getMonth() + 1
-      }/${periodEnd.getDate()}/${periodEnd.getFullYear()}`;
-  });
-  let budget = 0;
-  if (category) {
-    // calulate budget over implied time period. Budgets are for the month, so if the time period is a year, the budget is the monthly budget * 12
-    budget = category.target * (timePeriodLength / 1000 / 60 / 60 / 24 / 30.5);
-  }
-  const actuals = periods.map((period) => {
-    const periodTransactions = period.filter(
-      (transaction) =>
-        transaction.category === category.name &&
-        (type === 'Income' ? transaction.amount > 0 : transaction.amount < 0)
-    );
-    return periodTransactions.reduce(
-      (acc, transaction) => acc + Math.abs(transaction.amount),
-      0
-    );
-  });
+  // Calculate budget based on the category and time period length
+  const budget = calculateBudget(category, timePeriod);
+  // Calculate actuals based on the transactions, category, and type
+  const actuals = calculateActuals(transactions, category.name, type, timePeriod);
+  // Generate labels for the x-axis based on the time periods
+  const labels = generateLabels(timePeriod);
+
   return (
     <Bar
       data={{
@@ -263,7 +224,6 @@ function budgetComparisonBarChart(
             barPercentage: 0.9,
           },
         ],
-        // draw a line for the budget
       }}
       options={{
         responsive: true,
@@ -274,9 +234,7 @@ function budgetComparisonBarChart(
           },
           title: {
             display: true,
-            text: `Implied ${type} Budget of ${formatCurrency(
-              budget
-            )} vs Actual`,
+            text: `Implied ${type} Budget of ${formatCurrency(budget)} vs Actual`,
             color: 'white',
             position: 'top',
             padding: {
@@ -286,7 +244,7 @@ function budgetComparisonBarChart(
           datalabels: {
             anchor: 'end',
             align: 'top',
-            formatter: (value) => `$${Math.round(value)}`,
+            formatter: (value: number) => `$${Math.round(value)}`,
             font: {
               weight: 'bold',
             },
@@ -307,9 +265,7 @@ function budgetComparisonBarChart(
             },
           },
         },
-        // make no gaps between bars
         indexAxis: 'x',
-
         scales: {
           x: {
             display: true,
@@ -328,7 +284,109 @@ function budgetComparisonBarChart(
         },
       }}
     />
-  );
+  )
+}
+
+// Calculate implied budget
+function calculateBudget(category: db.Category, timePeriod: TimePeriod): number {
+  if (!category) return 0;
+  return category.target * getTimePeriodFactor(timePeriod);
+}
+
+function calculateActuals(transactions: db.Transaction[], categoryName: string, type: string, timePeriod: TimePeriod): number[] {
+  return generatePeriods(timePeriod)
+    .map(period => calculatePeriodActual(transactions, categoryName, type, period));
+}
+
+// Calculate the total expenses or income for a given category and time period
+function calculatePeriodActual(transactions: db.Transaction[], categoryName: string, type: string, period: TimePeriod): number {
+  return transactions
+    .filter(transaction => isTransactionInPeriod(transaction, period))
+    .filter(transaction => isTransactionOfType(transaction, categoryName, type))
+    .reduce((acc, transaction) => acc + Math.abs(transaction.amount), 0);
+}
+
+function isTransactionInPeriod(transaction: db.Transaction, period: TimePeriod): boolean {
+  const transactionDate = new Date(transaction.date);
+  return transactionDate >= period.startDate && transactionDate < period.endDate;
+}
+
+function isTransactionOfType(transaction: db.Transaction, categoryName: string, type: string): boolean {
+  return transaction.category === categoryName && (type === 'Income' ? transaction.amount > 0 : transaction.amount < 0);
+}
+
+// Generate labels for x-axis
+function generateLabels(timePeriod: TimePeriod): string[] {
+  return generatePeriods(timePeriod)
+    .map(period => `${formatDate(period.startDate)} - ${formatDate(period.endDate)}`);
+}
+
+// Generate periods based on the time period
+function generatePeriods(timePeriod: TimePeriod): TimePeriod[] {
+  const periods: TimePeriod[] = [];
+  let periodStart = new Date(timePeriod.startDate.getTime());
+  let periodEnd = new Date(timePeriod.endDate.getTime());
+
+  for (let i = 0; i < 10; i++) {
+    periods.push({
+      startDate: new Date(periodStart),
+      endDate: new Date(periodEnd),
+      period: timePeriod.period
+    });
+    movePeriodBackward(periodStart, periodEnd, timePeriod.period);
+  }
+
+  return periods;
+}
+
+function movePeriodBackward(periodStart: Date, periodEnd: Date, periodType: string): TimePeriod {
+  switch (periodType) {
+    case 'day':
+      periodStart.setDate(periodStart.getDate() - 1);
+      periodEnd.setDate(periodEnd.getDate() - 1);
+      break;
+    case 'week':
+      periodStart.setDate(periodStart.getDate() - 7);
+      periodEnd.setDate(periodEnd.getDate() - 7);
+      break;
+    case 'month':
+      periodStart.setMonth(periodStart.getMonth() - 1);
+      periodStart.setDate(1);
+      periodEnd.setDate(0);
+      break;
+    case 'year':
+      periodStart.setFullYear(periodStart.getFullYear() - 1);
+      periodEnd.setFullYear(periodEnd.getFullYear() - 1);
+      break;
+    default:
+      periodStart.setDate(periodStart.getDate() - 7);
+      periodEnd.setDate(periodEnd.getDate() - 7);
+      break;
+  }
+  return { startDate: periodStart, endDate: periodEnd, period: periodType };
+}
+
+function formatDate(date: Date): string {
+  return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
+}
+
+function getTimePeriodFactor(timePeriod: TimePeriod): number {
+  const timePeriodLength = timePeriod.endDate.getTime() - timePeriod.startDate.getTime();
+  return timePeriodLength / (1000 * 60 * 60 * 24 * 30.5); // Assuming a month has 30.5 days
+}
+
+function GetDefaultPeriod(): TimePeriod {
+  const startDateCalc = new Date();
+  startDateCalc.setDate(startDateCalc.getDate() - startDateCalc.getDay() + 1);
+  const endDateCalc = new Date(startDateCalc);
+  endDateCalc.setDate(endDateCalc.getDate() + 6);
+  startDateCalc.setHours(0, 0, 0, 0);
+  endDateCalc.setHours(23, 59, 59, 999);
+  return {
+    startDate: startDateCalc,
+    endDate: endDateCalc,
+    period: 'week',
+  };
 }
 
 function Dashboard() {
@@ -339,16 +397,19 @@ function Dashboard() {
   const [timePeriod, setTimePeriod] = useState<TimePeriod>({
     startDate: new Date(0),
     endDate: new Date(),
+    period: 'week',
   });
   const [intervalExpense, setIntervalExpense] = useState<TimePeriod>({
     // default 1 week
-    startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-    endDate: new Date(),
+    startDate: GetDefaultPeriod().startDate,
+    endDate: GetDefaultPeriod().endDate,
+    period: 'week',
   });
   const [intervalIncome, setIntervalIncome] = useState<TimePeriod>({
     // default 1 week
-    startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-    endDate: new Date(),
+    startDate: GetDefaultPeriod().startDate,
+    endDate: GetDefaultPeriod().endDate,
+    period: 'week',
   });
   const [selectedCategoryExpense, setSelectedCategoryExpense] =
     useState<db.Category>();
