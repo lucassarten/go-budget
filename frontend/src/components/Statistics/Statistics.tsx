@@ -1,13 +1,5 @@
 /* eslint-disable react/destructuring-assignment */
 // the statitics view presents the raw statistics of the budget in tables
-import {
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Select,
-  SelectChangeEvent,
-  TextField,
-} from '@mui/material';
 import Paper from '@mui/material/Paper';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
@@ -19,167 +11,50 @@ import { useEffect, useState } from 'react';
 
 import { QueryCategories, QueryTransactions } from "../../../wailsjs/go/db/Db";
 import { db } from "../../../wailsjs/go/models";
+import { formatCurrency, formatDate } from '../../Utils/Formatters';
+import { GetDefaultPeriod, TimePeriod } from '../Dashboard/Dashboard';
+import TimePeriodSelector from '../Selectors/TimePeriodSelector';
 
-interface TimePeriod {
-  startDate: Date;
-  endDate: Date;
-}
+function getLastPeriod(periodStart: Date, periodEnd: Date, periodType: string): TimePeriod {
+  switch (periodType) {
+    case 'lastWeek':
+      periodStart.setDate(periodStart.getDate() - 7);
+      periodEnd.setDate(periodEnd.getDate() - 7);
+      break;
+    case 'lastMonth':
+      periodStart.setMonth(periodStart.getMonth() - 1);
+      periodStart.setDate(1);
+      periodEnd.setDate(0);
+      break;
+    case 'lastThreeMonths':
+      periodStart.setMonth(periodStart.getMonth() - 3);
+      periodStart.setDate(1);
+      periodEnd = new Date(periodStart);
+      periodEnd.setMonth(periodEnd.getMonth() + 3);
+      periodEnd.setDate(periodEnd.getDate() - 1);
 
-const formatCurrency = (value: number) => {
-  const formatter = new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'NZD',
-    currencyDisplay: 'symbol',
-  });
-  return formatter.format(value);
-};
-
-const validateDate = (value: Date) => {
-  try {
-    value.toISOString();
-    return true;
-  } catch (e) {
-    return false;
+      break;
+    case 'lastSixMonths':
+      periodStart.setMonth(periodStart.getMonth() - 6);
+      periodStart.setDate(1);
+      periodEnd = new Date(periodStart);
+      periodEnd.setMonth(periodEnd.getMonth() + 6);
+      periodEnd.setDate(periodEnd.getDate() - 1);
+      break;
+    case 'lastYear':
+      periodStart.setFullYear(periodStart.getFullYear() - 1);
+      periodEnd.setFullYear(periodEnd.getFullYear() - 1);
+      break;
+    case 'custom':
+      periodStart.setDate(periodStart.getDate() - (periodEnd.getDate() - periodStart.getDate()));
+      periodEnd.setDate(periodEnd.getDate() - (periodEnd.getDate() - periodStart.getDate()));
+      break;
+    default:
+      periodStart.setDate(periodStart.getDate() - 7);
+      periodEnd.setDate(periodEnd.getDate() - 7);
+      break;
   }
-};
-
-interface TimePeriodSelectorProps {
-  // eslint-disable-next-line no-unused-vars
-  onTimePeriodChange: (timePeriod: TimePeriod) => void;
-}
-
-function TimePeriodSelector({ onTimePeriodChange }: TimePeriodSelectorProps) {
-  const [selectedOption, setSelectedOption] = useState('lastMonth');
-  const [startDate, setStartDate] = useState<Date>(new Date(0));
-  const [endDate, setEndDate] = useState<Date>(new Date());
-
-  const handleOptionChange = (event: SelectChangeEvent<string>) => {
-    setSelectedOption(event.target.value);
-    // print start end dates
-    let startDateCalc = new Date(0);
-    const endDateCalc = new Date();
-    switch (event.target.value) {
-      case 'lastWeek':
-        startDateCalc = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-        onTimePeriodChange({
-          startDate: startDateCalc,
-          endDate: endDateCalc,
-        });
-        break;
-      case 'lastMonth':
-        startDateCalc = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-        onTimePeriodChange({
-          startDate: startDateCalc,
-          endDate: endDateCalc,
-        });
-        setStartDate(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
-        break;
-      case 'lastThreeMonths':
-        startDateCalc = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
-        onTimePeriodChange({
-          startDate: startDateCalc,
-          endDate: endDateCalc,
-        });
-        break;
-      case 'lastSixMonths':
-        startDateCalc = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000);
-        onTimePeriodChange({
-          startDate: startDateCalc,
-          endDate: endDateCalc,
-        });
-        break;
-      case 'lastYear':
-        startDateCalc = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
-        onTimePeriodChange({
-          startDate: startDateCalc,
-          endDate: endDateCalc,
-        });
-        break;
-      case 'custom':
-        // do nothing, wait for user to select custom dates
-        break;
-      default:
-        onTimePeriodChange({
-          startDate: startDateCalc,
-          endDate: endDateCalc,
-        });
-        break;
-    }
-    setStartDate(startDateCalc);
-    setEndDate(endDateCalc);
-  };
-
-  const handleCustomDatesChange = () => {
-    onTimePeriodChange({
-      startDate,
-      endDate,
-    });
-  };
-
-  const handleStartDateChange = (date: Date) => {
-    setStartDate(date);
-  };
-
-  const handleEndDateChange = (date: Date) => {
-    setEndDate(date);
-  };
-
-  return (
-    <>
-      <FormControl>
-        <InputLabel id="timePeriodSelectLabel">Time Period</InputLabel>
-        <Select
-          labelId="timePeriodSelectLabel"
-          className="time-period-selector-statistics"
-          id="timePeriodSelect"
-          value={selectedOption}
-          label="Time Period"
-          onChange={handleOptionChange}
-        >
-          <MenuItem value="lastWeek">Last Week vs Previous</MenuItem>
-          <MenuItem value="lastMonth">Last Month vs Previous</MenuItem>
-          <MenuItem value="lastThreeMonths">Last 3 Months vs Previous</MenuItem>
-          <MenuItem value="lastSixMonths">Last 6 Months vs Previous</MenuItem>
-          <MenuItem value="lastYear">Last Year vs Previous</MenuItem>
-          <MenuItem value="custom">Custom vs Previous</MenuItem>
-        </Select>
-      </FormControl>
-      <div className="time-period-custom-container">
-        <TextField
-          label="Start Date"
-          id="startDatePicker"
-          onChange={(e) => {
-            handleStartDateChange(new Date(e.target.value));
-            handleCustomDatesChange();
-          }}
-          type="date"
-          InputLabelProps={{
-            shrink: true,
-          }}
-          disabled={selectedOption !== 'custom'}
-          value={
-            validateDate(startDate) ? startDate.toISOString().split('T')[0] : ''
-          }
-        />
-        <TextField
-          label="End Date"
-          id="endDatePicker"
-          onChange={(e) => {
-            handleEndDateChange(new Date(e.target.value));
-            handleCustomDatesChange();
-          }}
-          type="date"
-          InputLabelProps={{
-            shrink: true,
-          }}
-          disabled={selectedOption !== 'custom'}
-          value={
-            validateDate(endDate) ? endDate.toISOString().split('T')[0] : ''
-          }
-        />
-      </div>
-    </>
-  );
+  return { startDate: periodStart, endDate: periodEnd, period: periodType };
 }
 
 function StatisticsSummary(
@@ -207,12 +82,7 @@ function StatisticsSummary(
   const totalSavings = totalIncome - totalExpense;
   const percentageSavings = (totalSavings / totalIncome) * 100;
   // get same stats for the previous period
-  const timePeriodLength =
-    timePeriod.endDate.getTime() - timePeriod.startDate.getTime();
-  const previousTimePeriod = {
-    startDate: new Date(timePeriod.startDate.getTime() - timePeriodLength),
-    endDate: new Date(timePeriod.endDate.getTime() - timePeriodLength),
-  };
+  const previousTimePeriod = getLastPeriod(new Date(timePeriod.startDate), new Date(timePeriod.endDate), timePeriod.period);
   const transactionsExpensePrevious = transactions.filter(
     (transaction) =>
       transaction.amount < 0 &&
@@ -251,12 +121,8 @@ function StatisticsSummary(
               <TableCell>
                 <div className="statistics-table-header">Summary</div>
               </TableCell>
-              <TableCell>{`${previousTimePeriod.startDate.getDate()
-                }/${previousTimePeriod.startDate.getMonth() + 1}/${previousTimePeriod.startDate.getFullYear()} - ${previousTimePeriod.endDate.getDate()
-                }/${previousTimePeriod.endDate.getMonth() + 1}/${previousTimePeriod.endDate.getFullYear()}`}</TableCell>
-              <TableCell>{`${timePeriod.startDate.getDate()
-                }/${timePeriod.startDate.getMonth() + 1}/${timePeriod.startDate.getFullYear()} - ${timePeriod.endDate.getDate()
-                }/${timePeriod.endDate.getMonth() + 1}/${timePeriod.endDate.getFullYear()}`}</TableCell>
+              <TableCell>{`${formatDate(previousTimePeriod.startDate)} - ${formatDate(previousTimePeriod.endDate)}`}</TableCell>
+              <TableCell>{`${formatDate(timePeriod.startDate)} - ${formatDate(timePeriod.endDate)}`}</TableCell>
               <TableCell>Change</TableCell>
             </TableRow>
           </TableHead>
@@ -348,12 +214,7 @@ function StatisticsByCategory(
   type: string
 ) {
   // get same stats for the previous period
-  const timePeriodLength =
-    timePeriod.endDate.getTime() - timePeriod.startDate.getTime();
-  const previousTimePeriod = {
-    startDate: new Date(timePeriod.startDate.getTime() - timePeriodLength),
-    endDate: new Date(timePeriod.endDate.getTime() - timePeriodLength),
-  };
+  const previousTimePeriod = getLastPeriod(new Date(timePeriod.startDate), new Date(timePeriod.endDate), timePeriod.period);
   // define Transaction[]
   let transactionsCurrent: db.Transaction[];
   let transactionsPrevious: db.Transaction[];
@@ -397,13 +258,8 @@ function StatisticsByCategory(
                     {type} Categories
                   </div>
                 </TableCell>
-
-                <TableCell>{`${previousTimePeriod.startDate.getDate()
-                  }/${previousTimePeriod.startDate.getMonth() + 1}/${previousTimePeriod.startDate.getFullYear()} - ${previousTimePeriod.endDate.getDate()
-                  }/${previousTimePeriod.endDate.getMonth() + 1}/${previousTimePeriod.endDate.getFullYear()}`}</TableCell>
-                <TableCell>{`${timePeriod.startDate.getDate()
-                  }/${timePeriod.startDate.getMonth() + 1}/${timePeriod.startDate.getFullYear()} - ${timePeriod.endDate.getDate()
-                  }/${timePeriod.endDate.getMonth() + 1}/${timePeriod.endDate.getFullYear()}`}</TableCell>
+                <TableCell>{`${formatDate(previousTimePeriod.startDate)} - ${formatDate(previousTimePeriod.endDate)}`}</TableCell>
+                <TableCell>{`${formatDate(timePeriod.startDate)} - ${formatDate(timePeriod.endDate)}`}</TableCell>
                 <TableCell>Change</TableCell>
               </TableRow>
             </TableHead>
@@ -470,8 +326,9 @@ function Statistics() {
   const [categoriesIncome, setCategoriesIncome] = useState<db.Category[]>([]);
   const [categoriesExpense, setCategoriesExpense] = useState<db.Category[]>([]);
   const [timePeriod, setTimePeriod] = useState<TimePeriod>({
-    startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-    endDate: new Date(),
+    startDate: GetDefaultPeriod().startDate,
+    endDate: GetDefaultPeriod().endDate,
+    period: 'week',
   });
   useEffect(() => {
     // get transactions from db between time period
