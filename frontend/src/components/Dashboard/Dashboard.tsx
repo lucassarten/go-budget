@@ -276,7 +276,7 @@ function budgetComparisonBarChart(
 // Calculate implied budget
 function calculateBudget(category: db.Category, timePeriod: TimePeriod): number {
   if (!category) return 0;
-  return category.target * getTimePeriodFactor(timePeriod);
+  return category.monthly * getTimePeriodFactor(timePeriod);
 }
 
 function calculateActuals(transactions: db.Transaction[], categoryName: string, type: string, timePeriod: TimePeriod): number[] {

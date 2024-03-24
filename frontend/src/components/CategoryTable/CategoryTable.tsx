@@ -61,7 +61,10 @@ const validateColour = (value: string) => {
 function validateCategory(category: db.Category) {
   return {
     name: !validateRequired(category.name) ? 'Name is required' : '',
-    target: !validateAmount(String(category.target))
+    monthly: !validateAmount(String(category.monthly))
+      ? 'Target must be a positive number'
+      : '',
+    weekly: !validateAmount(String(category.weekly))
       ? 'Target must be a positive number'
       : '',
     colour: !validateColour(category.colour) ? 'Colour must be a valid hex code' : '',
@@ -74,10 +77,18 @@ function useCreateCategory(type: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (category: db.Category) => {
+      // Calculate the other budget type if not provided
+      const monthly = category.monthly;
+      const weekly = category.weekly;
+      if (!weekly || weekly === 0) {
+        category.weekly = monthly / 4.34524; // Assuming 4.34524 weeks in a month
+      } else if (!monthly || monthly === 0) {
+        category.monthly = weekly * 4.34524; // Assuming 4.34524 weeks in a month
+      }
       // update row in db
       return await Exec(
-        `INSERT INTO Categories${type} (name, target, colour) VALUES (?, ?, ?)`,
-        [category.name, category.target, category.colour]
+        `INSERT INTO Categories${type} (name, monthly, weekly, colour) VALUES (?, ?, ?, ?)`,
+        [category.name, category.monthly, category.weekly, category.colour]
       );
     },
     //client side optimistic update
@@ -110,10 +121,19 @@ function useUpdateCategory(type: string) {
         window.alert('Cannot update default categories');
         return;
       }
+      // Get current record from db
+      const current = await QueryCategories(`SELECT * FROM Categories${type} WHERE name = ?`, [category.name]);
+      // Check if monthly or weekly is being updated
+      if (category.monthly !== current[0].monthly) {
+        category.weekly = category.monthly / 4.34524; // Assuming 4.34524 weeks in a month
+      } else if (category.weekly !== current[0].weekly) {
+        category.monthly = category.weekly * 4.34524; // Assuming 4.34524 weeks in a month
+      }
+
       // update row in db
       return await Exec(
-        `UPDATE Categories${type} SET name = ?, target = ?, colour = ? WHERE name = ?`,
-        [category.name, category.target, category.colour, category.name]
+        `UPDATE Categories${type} SET name = ?, monthly = ?, weekly = ?, colour = ? WHERE name = ?`,
+        [category.name, category.monthly, category.weekly, category.colour, category.name]
       );
     },
     // client side optimistic update
@@ -151,7 +171,8 @@ function useDeleteCategory(type: string) {
 
 type ValidationErrors = {
   name?: string;
-  target?: string;
+  weeklyBudget?: string;
+  monthlyBudget?: string;
   colour?: string;
 };
 
@@ -177,7 +198,8 @@ const CategoryTable = ({ type }: { type: string }) => {
     const isValid = validateAmount(event.target.value);
 
     dispatchValidationErrors({
-      target: isValid ? undefined : 'Target must be a positive number',
+      weeklyBudget: isValid ? undefined : 'Target must be a positive number',
+      monthlyBudget: isValid ? undefined : 'Target must be a positive number',
     });
   }, [validateAmount]), 500);
 
@@ -216,7 +238,8 @@ const CategoryTable = ({ type }: { type: string }) => {
     }
     dispatchValidationErrors({
       name: undefined,
-      target: undefined,
+      weeklyBudget: undefined,
+      monthlyBudget: undefined,
       colour: undefined,
     });
     await createCategory(values);
@@ -227,13 +250,15 @@ const CategoryTable = ({ type }: { type: string }) => {
     table.setCreatingRow(true);
     dispatchValidationErrors({
       name: undefined,
-      target: undefined,
+      weeklyBudget: undefined,
+      monthlyBudget: undefined,
       colour: undefined,
     });
     table.setCreatingRow(
       createRow(table, {
         name: '',
-        target: 0,
+        weeklyBudget: 0,
+        monthlyBudget: 0,
         colour: '#' + Math.floor(Math.random() * 16777215).toString(16),
       }),
     );
@@ -247,7 +272,8 @@ const CategoryTable = ({ type }: { type: string }) => {
   const handleEditingRow = (table: any, row: MRT_Row<db.Category>) => {
     dispatchValidationErrors({
       name: undefined,
-      target: undefined,
+      weeklyBudget: undefined,
+      monthlyBudget: undefined,
       colour: undefined,
     });
     table.setEditingRow(row);
@@ -273,7 +299,8 @@ const CategoryTable = ({ type }: { type: string }) => {
     }
     dispatchValidationErrors({
       name: undefined,
-      target: undefined,
+      weeklyBudget: undefined,
+      monthlyBudget: undefined,
       colour: undefined,
     });
     await updateCategory(values);
@@ -301,23 +328,39 @@ const CategoryTable = ({ type }: { type: string }) => {
         },
       },
       {
-        accessorKey: 'target',
-        header: 'Target',
+        accessorKey: 'weekly',
+        header: 'Weekly Budget',
         size: 50,
-        // format as currency
         Cell: ({ cell }) => formatCurrency(cell.getValue() as number),
         muiEditTextFieldProps: {
           required: true,
-          error: !!validationErrors?.target,
-          helperText: validationErrors?.target,
-          // remove any previous validation errors when user focuses on the input
+          error: !!validationErrors?.weeklyBudget,
+          helperText: validationErrors?.weeklyBudget,
           onFocus: () =>
             dispatchValidationErrors({
-              target: undefined,
+              weeklyBudget: undefined
             }),
-          // validate on change
           onChange: handleTargetChange,
           onBlur: handleTargetChange,
+          name: 'weeklyBudget',
+        },
+      },
+      {
+        accessorKey: 'monthly',
+        header: 'Monthly Budget',
+        size: 50,
+        Cell: ({ cell }) => formatCurrency(cell.getValue() as number),
+        muiEditTextFieldProps: {
+          required: true,
+          error: !!validationErrors?.monthlyBudget,
+          helperText: validationErrors?.monthlyBudget,
+          onFocus: () =>
+            dispatchValidationErrors({
+              monthlyBudget: undefined
+            }),
+          onChange: handleTargetChange,
+          onBlur: handleTargetChange,
+          name: 'monthlyBudget',
         },
       },
       {
@@ -381,13 +424,15 @@ const CategoryTable = ({ type }: { type: string }) => {
     },
     onCreatingRowCancel: () => dispatchValidationErrors({
       name: undefined,
-      target: undefined,
+      weeklyBudget: undefined,
+      monthlyBudget: undefined,
       colour: undefined,
     }),
     onCreatingRowSave: handleCreateCategory,
     onEditingRowCancel: () => dispatchValidationErrors({
       name: undefined,
-      target: undefined,
+      weeklyBudget: undefined,
+      monthlyBudget: undefined,
       colour: undefined,
     }),
     onEditingRowSave: handleSaveCategory,
