@@ -140,7 +140,6 @@ export default function App() {
             <Route path="/" element={<MainLayout />} />
           </Routes>
         </Router>
-
       </QueryClientProvider>
     </ThemeProvider>
   );

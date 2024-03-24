@@ -56,7 +56,8 @@ func (db *Db) Startup(ctx context.Context) {
 	err = db.Exec(`
 		CREATE TABLE IF NOT EXISTS CategoriesIncome (
 			name TEXT PRIMARY KEY,
-			target INTEGER NOT NULL DEFAULT 0,
+			monthly INTEGER NOT NULL DEFAULT 0,
+			weekly INTEGER NOT NULL DEFAULT 0,
 			colour TEXT NOT NULL DEFAULT "#E0BBE4"
 		)
 	`, nil)
@@ -66,7 +67,8 @@ func (db *Db) Startup(ctx context.Context) {
 	err = db.Exec(`
 		CREATE TABLE IF NOT EXISTS CategoriesExpense (
 			name TEXT PRIMARY KEY,
-			target INTEGER NOT NULL DEFAULT 0,
+			monthly INTEGER NOT NULL DEFAULT 0,
+			weekly INTEGER NOT NULL DEFAULT 0,
 			colour TEXT NOT NULL DEFAULT "#E0BBE4"
 		)
 	`, nil)
@@ -83,9 +85,9 @@ func (db *Db) Startup(ctx context.Context) {
 		// Insert values from defaultCategoriesExpense
 		for _, category := range defaultCategoriesExpense {
 			err = db.Exec(`
-				INSERT INTO CategoriesExpense (name, target, colour)
-				VALUES (?, ?, ?)
-			`, []interface{}{category.Name, category.Target, category.Colour})
+				INSERT INTO CategoriesExpense (name, monthly, weekly, colour)
+				VALUES (?, ?, ?, ?)
+			`, []interface{}{category.Name, category.Monthly, category.Weekly, category.Colour})
 			if err != nil {
 				panic(err)
 			}
@@ -101,9 +103,9 @@ func (db *Db) Startup(ctx context.Context) {
 		// Insert values from defaultCategoriesIncome
 		for _, category := range defaultCategoriesIncome {
 			err = db.Exec(`
-				INSERT INTO CategoriesIncome (name, target, colour)
-				VALUES (?, ?, ?)
-			`, []interface{}{category.Name, category.Target, category.Colour})
+				INSERT INTO CategoriesIncome (name, monthly, weekly, colour)
+				VALUES (?, ?, ?, ?)
+			`, []interface{}{category.Name, category.Monthly, category.Weekly, category.Colour})
 			if err != nil {
 				panic(err)
 			}
@@ -118,9 +120,9 @@ func (db *Db) Startup(ctx context.Context) {
 		}
 		if count == 0 {
 			err = db.Exec(`
-				INSERT INTO CategoriesExpense (name, target, colour)
-				VALUES (?, ?, ?)
-			`, []interface{}{category.Name, category.Target, category.Colour})
+				INSERT INTO CategoriesExpense (name, monthly, weekly, colour)
+				VALUES (?, ?, ?, ?)
+			`, []interface{}{category.Name, category.Monthly, category.Weekly, category.Colour})
 			if err != nil {
 				panic(err)
 			}
@@ -131,9 +133,9 @@ func (db *Db) Startup(ctx context.Context) {
 		}
 		if count == 0 {
 			err = db.Exec(`
-				INSERT INTO CategoriesIncome (name, target, colour)
-				VALUES (?, ?, ?)
-			`, []interface{}{category.Name, category.Target, category.Colour})
+				INSERT INTO CategoriesIncome (name, monthly, weekly, colour)
+				VALUES (?, ?, ?, ?)
+			`, []interface{}{category.Name, category.Monthly, category.Weekly, category.Colour})
 			if err != nil {
 				panic(err)
 			}
@@ -265,7 +267,7 @@ func (db *Db) QueryRowCategory(query string, args []interface{}) (Category, erro
 	}
 	// cast to Category
 	category := Category{}
-	err = res.Scan(&category.Name, &category.Target, &category.Colour)
+	err = res.Scan(&category.Name, &category.Monthly, &category.Weekly, &category.Colour)
 	if err != nil {
 		return Category{}, err
 	}
@@ -284,7 +286,7 @@ func (db *Db) QueryCategories(query string, args []interface{}) ([]Category, err
 	categories := []Category{}
 	for res.Next() {
 		var category Category
-		err = res.Scan(&category.Name, &category.Target, &category.Colour)
+		err = res.Scan(&category.Name, &category.Monthly, &category.Weekly, &category.Colour)
 		if err != nil {
 			return []Category{}, err
 		}

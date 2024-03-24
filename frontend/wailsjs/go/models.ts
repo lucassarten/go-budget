@@ -2,7 +2,8 @@ export namespace db {
 	
 	export class Category {
 	    name: string;
-	    target: number;
+	    monthly: number;
+	    weekly: number;
 	    colour: string;
 	
 	    static createFrom(source: any = {}) {
@@ -12,7 +13,8 @@ export namespace db {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.name = source["name"];
-	        this.target = source["target"];
+	        this.monthly = source["monthly"];
+	        this.weekly = source["weekly"];
 	        this.colour = source["colour"];
 	    }
 	}
