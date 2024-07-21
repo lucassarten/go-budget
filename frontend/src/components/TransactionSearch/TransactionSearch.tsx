@@ -12,8 +12,8 @@ import {
 } from "material-react-table";
 import { useCallback, useMemo, useState } from "react";
 
-import { QueryTransactions } from "../../../wailsjs/go/db/Db";
-import { db } from "../../../wailsjs/go/models";
+import { GetTransactionsExpense, GetTransactionsIncome } from "../../../wailsjs/go/db/Db";
+import { ent } from "../../../wailsjs/go/models";
 
 // validation functions
 
@@ -36,15 +36,10 @@ const formatDate = (value: string) => {
 };
 
 function useGetTransactions(type: string) {
-  return useQuery<db.Transaction[]>({
+  return useQuery<ent.Transaction[]>({
     queryKey: ["reimbursements"],
     queryFn: async () => {
-      console.log("attempting to get reimbursement transactions from db");
-      return await QueryTransactions(
-        `SELECT * FROM Transactions WHERE ${type === "Income" ? "amount > 0" : "amount < 0"
-        }`,
-        []
-      );
+      return await type === "Income" ? GetTransactionsIncome() : GetTransactionsExpense();
     },
     refetchOnWindowFocus: false,
   });
@@ -55,7 +50,7 @@ const TransactionSearch = ({
   onSelect,
 }: {
   type: string;
-  onSelect: (transaction: db.Transaction) => void;
+  onSelect: (transaction: ent.Transaction) => void;
 }) => {
   const [pagination, setPagination] = useState({
     pageIndex: 0,
@@ -71,11 +66,11 @@ const TransactionSearch = ({
 
   const filteredTransactions = useMemo(() => {
     return type === "Income"
-      ? fetchedTransactions.filter((transaction) => transaction.amount > 0)
-      : fetchedTransactions.filter((transaction) => transaction.amount < 0);
+      ? fetchedTransactions.filter((transaction) => Number(transaction.amount) > 0)
+      : fetchedTransactions.filter((transaction) => Number(transaction.amount) < 0);
   }, [type, fetchedTransactions]);
 
-  const columns = useMemo<MRT_ColumnDef<db.Transaction>[]>(
+  const columns = useMemo<MRT_ColumnDef<ent.Transaction>[]>(
     () => [
       {
         accessorKey: "id",
@@ -129,7 +124,7 @@ const TransactionSearch = ({
     []
   );
 
-  const table = useMaterialReactTable<db.Transaction>({
+  const table = useMaterialReactTable<ent.Transaction>({
     columns,
     data: filteredTransactions,
     createDisplayMode: "row",
@@ -151,7 +146,7 @@ const TransactionSearch = ({
       },
     },
     renderRowActions: useCallback<
-      Required<MRT_TableOptions<db.Transaction>>["renderRowActions"]
+      Required<MRT_TableOptions<ent.Transaction>>["renderRowActions"]
     >(
       ({ row, table }) => (
         <Box sx={{ display: "flex", gap: "1rem" }}>
@@ -162,12 +157,12 @@ const TransactionSearch = ({
     ),
     renderTopToolbarCustomActions: useCallback<
       Required<
-        MRT_TableOptions<db.Transaction>
+        MRT_TableOptions<ent.Transaction>
       >["renderTopToolbarCustomActions"]
     >(
       ({ table }) => (
         <div className="table-top-toolbar-container">
-          <Button onClick={() => onSelect(new db.Transaction())}>None</Button>
+          <Button onClick={() => onSelect(new ent.Transaction())}>None</Button>
         </div>
       ),
       []

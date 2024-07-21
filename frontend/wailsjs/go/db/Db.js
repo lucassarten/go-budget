@@ -6,34 +6,66 @@ export function Close() {
   return window['go']['db']['Db']['Close']();
 }
 
-export function Exec(arg1, arg2) {
-  return window['go']['db']['Db']['Exec'](arg1, arg2);
+export function CreateCategory(arg1, arg2, arg3, arg4, arg5) {
+  return window['go']['db']['Db']['CreateCategory'](arg1, arg2, arg3, arg4, arg5);
+}
+
+export function CreateTransaction(arg1, arg2, arg3, arg4) {
+  return window['go']['db']['Db']['CreateTransaction'](arg1, arg2, arg3, arg4);
+}
+
+export function DeleteCategory(arg1) {
+  return window['go']['db']['Db']['DeleteCategory'](arg1);
+}
+
+export function DeleteTransaction(arg1) {
+  return window['go']['db']['Db']['DeleteTransaction'](arg1);
+}
+
+export function GetCategories() {
+  return window['go']['db']['Db']['GetCategories']();
+}
+
+export function GetCategoriesByType(arg1) {
+  return window['go']['db']['Db']['GetCategoriesByType'](arg1);
+}
+
+export function GetCategoryByID(arg1) {
+  return window['go']['db']['Db']['GetCategoryByID'](arg1);
+}
+
+export function GetCategoryByName(arg1) {
+  return window['go']['db']['Db']['GetCategoryByName'](arg1);
+}
+
+export function GetCategoryTransactions(arg1) {
+  return window['go']['db']['Db']['GetCategoryTransactions'](arg1);
+}
+
+export function GetTransactionByID(arg1) {
+  return window['go']['db']['Db']['GetTransactionByID'](arg1);
+}
+
+export function GetTransactions() {
+  return window['go']['db']['Db']['GetTransactions']();
+}
+
+export function GetTransactionsExpense() {
+  return window['go']['db']['Db']['GetTransactionsExpense']();
+}
+
+export function GetTransactionsIncome() {
+  return window['go']['db']['Db']['GetTransactionsIncome']();
 }
 
 export function Open() {
   return window['go']['db']['Db']['Open']();
 }
 
-export function Ping() {
-  return window['go']['db']['Db']['Ping']();
+export function UpdateCategory(arg1, arg2, arg3, arg4, arg5, arg6) {
+  return window['go']['db']['Db']['UpdateCategory'](arg1, arg2, arg3, arg4, arg5, arg6);
 }
 
-export function QueryCategories(arg1, arg2) {
-  return window['go']['db']['Db']['QueryCategories'](arg1, arg2);
-}
-
-export function QueryRowCategory(arg1, arg2) {
-  return window['go']['db']['Db']['QueryRowCategory'](arg1, arg2);
-}
-
-export function QueryRowCount(arg1, arg2) {
-  return window['go']['db']['Db']['QueryRowCount'](arg1, arg2);
-}
-
-export function QueryTransaction(arg1, arg2) {
-  return window['go']['db']['Db']['QueryTransaction'](arg1, arg2);
-}
-
-export function QueryTransactions(arg1, arg2) {
-  return window['go']['db']['Db']['QueryTransactions'](arg1, arg2);
+export function UpdateTransaction(arg1, arg2, arg3, arg4, arg5, arg6) {
+  return window['go']['db']['Db']['UpdateTransaction'](arg1, arg2, arg3, arg4, arg5, arg6);
 }

@@ -9,11 +9,11 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import { useEffect, useState } from 'react';
 
-import { QueryCategories, QueryTransactions } from "../../../wailsjs/go/db/Db";
-import { db } from "../../../wailsjs/go/models";
+import { ent } from "../../../wailsjs/go/models";
 import { formatCurrency, formatDate } from '../../Utils/Formatters';
 import { GetDefaultPeriod, TimePeriod } from '../Dashboard/Dashboard';
 import TimePeriodSelector from '../Selectors/TimePeriodSelector';
+import { GetCategoriesByType, GetTransactions } from '../../../wailsjs/go/db/Db';
 
 function getLastPeriod(periodStart: Date, periodEnd: Date, periodType: string): TimePeriod {
   switch (periodType) {
@@ -58,7 +58,7 @@ function getLastPeriod(periodStart: Date, periodEnd: Date, periodType: string): 
 }
 
 function StatisticsSummary(
-  transactions: db.Transaction[],
+  transactions: ent.Transaction[],
   timePeriod: TimePeriod
 ) {
   // table displaying the total income, expenses and savings
@@ -66,41 +66,41 @@ function StatisticsSummary(
   const totalExpense = transactions
     .filter(
       (transaction) =>
-        transaction.amount < 0 &&
-        new Date(transaction.date) >= timePeriod.startDate &&
-        new Date(transaction.date) <= timePeriod.endDate
+        Number(transaction.amount) < 0 &&
+        new Date(Number(transaction.time) * 1000) >= timePeriod.startDate &&
+        new Date(Number(transaction.time) * 1000) <= timePeriod.endDate
     )
-    .reduce((acc, transaction) => acc + Math.abs(transaction.amount), 0);
+    .reduce((acc, transaction) => acc + Math.abs(Number(transaction.amount)), 0);
   const totalIncome = transactions
     .filter(
       (transaction) =>
-        transaction.amount > 0 &&
-        new Date(transaction.date) >= timePeriod.startDate &&
-        new Date(transaction.date) <= timePeriod.endDate
+        Number(transaction.amount) > 0 &&
+        new Date(Number(transaction.time) * 1000) >= timePeriod.startDate &&
+        new Date(Number(transaction.time) * 1000) <= timePeriod.endDate
     )
-    .reduce((acc, transaction) => acc + transaction.amount, 0);
+    .reduce((acc, transaction) => acc + Number(transaction.amount), 0);
   const totalSavings = totalIncome - totalExpense;
   const percentageSavings = (totalSavings / totalIncome) * 100;
   // get same stats for the previous period
   const previousTimePeriod = getLastPeriod(new Date(timePeriod.startDate), new Date(timePeriod.endDate), timePeriod.period);
   const transactionsExpensePrevious = transactions.filter(
     (transaction) =>
-      transaction.amount < 0 &&
-      new Date(transaction.date) >= previousTimePeriod.startDate &&
-      new Date(transaction.date) <= previousTimePeriod.endDate
+      Number(transaction.amount) < 0 &&
+      new Date(Number(transaction.time) * 1000) >= previousTimePeriod.startDate &&
+      new Date(Number(transaction.time) * 1000) <= previousTimePeriod.endDate
   );
   const transactionsIncomePrevious = transactions.filter(
     (transaction) =>
-      transaction.amount > 0 &&
-      new Date(transaction.date) >= previousTimePeriod.startDate &&
-      new Date(transaction.date) <= previousTimePeriod.endDate
+      Number(transaction.amount) > 0 &&
+      new Date(Number(transaction.time) * 1000) >= previousTimePeriod.startDate &&
+      new Date(Number(transaction.time) * 1000) <= previousTimePeriod.endDate
   );
   const totalExpensePrevious = transactionsExpensePrevious.reduce(
-    (acc, transaction) => acc + Math.abs(transaction.amount),
+    (acc, transaction) => acc + Math.abs(Number(transaction.amount)),
     0
   );
   const totalIncomePrevious = transactionsIncomePrevious.reduce(
-    (acc, transaction) => acc + transaction.amount,
+    (acc, transaction) => acc + Number(transaction.amount),
     0
   );
   const totalSavingsPrevious = totalIncomePrevious - totalExpensePrevious;
@@ -208,41 +208,41 @@ function StatisticsSummary(
 
 // same table as StatisticsSummary but for every category
 function StatisticsByCategory(
-  transactions: db.Transaction[],
+  transactions: ent.Transaction[],
   timePeriod: TimePeriod,
-  categories: db.Category[],
+  categories: ent.Category[],
   type: string
 ) {
   // get same stats for the previous period
   const previousTimePeriod = getLastPeriod(new Date(timePeriod.startDate), new Date(timePeriod.endDate), timePeriod.period);
   // define Transaction[]
-  let transactionsCurrent: db.Transaction[];
-  let transactionsPrevious: db.Transaction[];
+  let transactionsCurrent: ent.Transaction[];
+  let transactionsPrevious: ent.Transaction[];
   if (type === 'Expense') {
     transactionsCurrent = transactions.filter(
       (transaction) =>
-        transaction.amount < 0 &&
-        new Date(transaction.date) >= timePeriod.startDate &&
-        new Date(transaction.date) <= timePeriod.endDate
+        Number(transaction.amount) < 0 &&
+        new Date(Number(transaction.time) * 1000) >= timePeriod.startDate &&
+        new Date(Number(transaction.time) * 1000) <= timePeriod.endDate
     );
     transactionsPrevious = transactions.filter(
       (transaction) =>
-        transaction.amount < 0 &&
-        new Date(transaction.date) >= previousTimePeriod.startDate &&
-        new Date(transaction.date) <= previousTimePeriod.endDate
+        Number(transaction.amount) < 0 &&
+        new Date(Number(transaction.time) * 1000) >= previousTimePeriod.startDate &&
+        new Date(Number(transaction.time) * 1000) <= previousTimePeriod.endDate
     );
   } else {
     transactionsCurrent = transactions.filter(
       (transaction) =>
-        transaction.amount > 0 &&
-        new Date(transaction.date) >= timePeriod.startDate &&
-        new Date(transaction.date) <= timePeriod.endDate
+        Number(transaction.amount) > 0 &&
+        new Date(Number(transaction.time) * 1000) >= timePeriod.startDate &&
+        new Date(Number(transaction.time) * 1000) <= timePeriod.endDate
     );
     transactionsPrevious = transactions.filter(
       (transaction) =>
-        transaction.amount > 0 &&
-        new Date(transaction.date) >= previousTimePeriod.startDate &&
-        new Date(transaction.date) <= previousTimePeriod.endDate
+        Number(transaction.amount) > 0 &&
+        new Date(Number(transaction.time) * 1000) >= previousTimePeriod.startDate &&
+        new Date(Number(transaction.time) * 1000) <= previousTimePeriod.endDate
     );
   }
 
@@ -266,20 +266,20 @@ function StatisticsByCategory(
             <TableBody>
               {categories.map((category) => {
                 const transactionsCategory = transactionsCurrent.filter(
-                  (transaction) => transaction.category === category.name
+                  (transaction) => transaction.category_id === category.id
                 );
                 const transactionsCategoryPrevious =
                   transactionsPrevious.filter(
-                    (transaction) => transaction.category === category.name
+                    (transaction) => transaction.category_id === category.id
                   );
                 const totalCategory = transactionsCategory.reduce(
-                  (total, transaction) => total + Math.abs(transaction.amount),
+                  (total, transaction) => total + Math.abs(Number(transaction.amount)),
                   0
                 );
                 const totalCategoryPrevious =
                   transactionsCategoryPrevious.reduce(
                     (total, transaction) =>
-                      total + Math.abs(transaction.amount),
+                      total + Math.abs(Number(transaction.amount)),
                     0
                   );
                 const totalCategoryChange =
@@ -322,9 +322,9 @@ function StatisticsByCategory(
 }
 
 function Statistics() {
-  const [transactionsAll, setTransactionsAll] = useState<db.Transaction[]>([]);
-  const [categoriesIncome, setCategoriesIncome] = useState<db.Category[]>([]);
-  const [categoriesExpense, setCategoriesExpense] = useState<db.Category[]>([]);
+  const [transactionsAll, setTransactionsAll] = useState<ent.Transaction[]>([]);
+  const [categoriesIncome, setCategoriesIncome] = useState<ent.Category[]>([]);
+  const [categoriesExpense, setCategoriesExpense] = useState<ent.Category[]>([]);
   const [timePeriod, setTimePeriod] = useState<TimePeriod>({
     startDate: GetDefaultPeriod().startDate,
     endDate: GetDefaultPeriod().endDate,
@@ -332,25 +332,25 @@ function Statistics() {
   });
   useEffect(() => {
     // get transactions from db between time period
-    QueryTransactions("SELECT * FROM Transactions where category <> '🚫 Ignore'", []).then((resp: db.Transaction[]) => {
+    GetTransactions().then((resp: ent.Transaction[]) => {
       // calc reimbursements
       resp.forEach((transaction) => {
-        if (transaction.reimbursedBy) {
-          const reimbursedTransaction = resp.find((item) => item.id === transaction.reimbursedBy);
+        if (transaction.reimbursed_by_id) {
+          const reimbursedTransaction = resp.find((item) => item.id === transaction.reimbursed_by_id);
           if (reimbursedTransaction) {
-            transaction.amount = Math.min(transaction.amount + reimbursedTransaction.amount, 0);
+            transaction.amount = Math.min(Number(transaction.amount) + Number(reimbursedTransaction.amount), 0);
           }
         }
       });
       // remove reimbursed transaction from list
-      resp = resp.filter((transaction) => transaction.category !== '🔁 Reimbursement');
+      resp = resp.filter((transaction) => !transaction.reimbursed_by_id);
       setTransactionsAll(resp);
     });
     // get categories from db
-    QueryCategories("SELECT * FROM CategoriesIncome where name <> '🚫 Ignore'", []).then((resp: db.Category[]) => {
+    GetCategoriesByType("income").then((resp: ent.Category[]) => {
       setCategoriesIncome(resp);
     });
-    QueryCategories("SELECT * FROM CategoriesExpense where name <> '🚫 Ignore'", []).then((resp: db.Category[]) => {
+    GetCategoriesByType("expense").then((resp: ent.Category[]) => {
       setCategoriesExpense(resp);
     });
   }, [timePeriod]);

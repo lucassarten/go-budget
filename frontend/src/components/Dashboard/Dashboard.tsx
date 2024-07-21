@@ -8,24 +8,24 @@ import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { useEffect, useState } from 'react';
 import { Bar, Pie } from 'react-chartjs-2';
 
-import { QueryCategories, QueryTransactions } from "../../../wailsjs/go/db/Db";
-import { db } from "../../../wailsjs/go/models";
+import { GetCategories, GetTransactions } from "../../../wailsjs/go/db/Db";
+import { ent } from "../../../wailsjs/go/models";
 
+import { formatCurrency, formatDate } from '../../Utils/Formatters';
 import CategorySelector from '../Selectors/CategorySelector';
 import IntervalSelector from '../Selectors/IntervalSelector';
 import TimePeriodSelector from '../Selectors/TimePeriodSelector';
-import { formatCurrency, formatDate } from '../../Utils/Formatters';
 
 Chart.register(...registerables, ChartDataLabels, annotationPlugin);
 
 function categoryPieChart(
   type: string,
-  categories: db.Category[],
-  transactions: db.Transaction[]
+  categories: ent.Category[],
+  transactions: ent.Transaction[]
 ) {
   const categoriesPeriod = categories.filter((category) => {
     const categoryTransactions = transactions.filter(
-      (transaction) => transaction.category === category.name
+      (transaction) => transaction.category_id === category.id
     );
     return categoryTransactions.length > 0;
   });
@@ -38,13 +38,13 @@ function categoryPieChart(
             label: type,
             data: categoriesPeriod.map((category) => {
               const categoryTransactions = transactions.filter(
-                (transaction) => transaction.category === category.name
+                (transaction) => transaction.category_id === category.id
               );
               if (categoryTransactions.length === 0) {
                 return 0;
               }
               return categoryTransactions.reduce(
-                (acc, transaction) => acc + transaction.amount,
+                (acc, transaction) => acc + Number(transaction.amount),
                 0
               );
             }),
@@ -92,13 +92,13 @@ function categoryPieChart(
   );
 }
 
-function IncomeEarningSavingsComparison(transactions: db.Transaction[]) {
+function IncomeEarningSavingsComparison(transactions: ent.Transaction[]) {
   const income = transactions
-    .filter((transaction) => transaction.amount > 0)
-    .reduce((acc, transaction) => acc + transaction.amount, 0);
+    .filter((transaction) => Number(transaction.amount) > 0)
+    .reduce((acc, transaction) => acc + Number(transaction.amount), 0);
   const expenses = transactions
-    .filter((transaction) => transaction.amount < 0)
-    .reduce((acc, transaction) => acc + Math.abs(transaction.amount), 0);
+    .filter((transaction) => Number(transaction.amount) < 0)
+    .reduce((acc, transaction) => acc + Math.abs(Number(transaction.amount)), 0);
   return (
     <Bar
       data={{
@@ -187,14 +187,14 @@ function IncomeEarningSavingsComparison(transactions: db.Transaction[]) {
  */
 function budgetComparisonBarChart(
   timePeriod: TimePeriod,
-  category: db.Category,
-  transactions: db.Transaction[],
+  category: ent.Category,
+  transactions: ent.Transaction[],
   type: string
 ) {
   // Calculate budget based on the category and time period length
   const budget = calculateBudget(category, timePeriod);
   // Calculate actuals based on the transactions, category, and type
-  const actuals = calculateActuals(transactions, category.name, type, timePeriod);
+  const actuals = calculateActuals(transactions, Number(category.id), type, timePeriod);
   // Generate labels for the x-axis based on the time periods
   const labels = generateLabels(timePeriod);
 
@@ -274,31 +274,31 @@ function budgetComparisonBarChart(
 }
 
 // Calculate implied budget
-function calculateBudget(category: db.Category, timePeriod: TimePeriod): number {
+function calculateBudget(category: ent.Category, timePeriod: TimePeriod): number {
   if (!category) return 0;
-  return category.monthly * getTimePeriodFactor(timePeriod);
+  return Number(category.monthly) * getTimePeriodFactor(timePeriod);
 }
 
-function calculateActuals(transactions: db.Transaction[], categoryName: string, type: string, timePeriod: TimePeriod): number[] {
+function calculateActuals(transactions: ent.Transaction[], categoryID: number, type: string, timePeriod: TimePeriod): number[] {
   return generatePeriods(timePeriod)
-    .map(period => calculatePeriodActual(transactions, categoryName, type, period));
+    .map(period => calculatePeriodActual(transactions, categoryID, type, period));
 }
 
 // Calculate the total expenses or income for a given category and time period
-function calculatePeriodActual(transactions: db.Transaction[], categoryName: string, type: string, period: TimePeriod): number {
+function calculatePeriodActual(transactions: ent.Transaction[], categoryID: number, type: string, period: TimePeriod): number {
   return transactions
     .filter(transaction => isTransactionInPeriod(transaction, period))
-    .filter(transaction => isTransactionOfType(transaction, categoryName, type))
-    .reduce((acc, transaction) => acc + Math.abs(transaction.amount), 0);
+    .filter(transaction => isTransactionOfType(transaction, categoryID, type))
+    .reduce((acc, transaction) => acc + Math.abs(Number(transaction.amount)), 0);
 }
 
-function isTransactionInPeriod(transaction: db.Transaction, period: TimePeriod): boolean {
-  const transactionDate = new Date(transaction.date);
+function isTransactionInPeriod(transaction: ent.Transaction, period: TimePeriod): boolean {
+  const transactionDate = new Date(Number(transaction.time) * 1000);
   return transactionDate >= period.startDate && transactionDate < period.endDate;
 }
 
-function isTransactionOfType(transaction: db.Transaction, categoryName: string, type: string): boolean {
-  return transaction.category === categoryName && (type === 'Income' ? transaction.amount > 0 : transaction.amount < 0);
+function isTransactionOfType(transaction: ent.Transaction, categoryID: number, type: string): boolean {
+  return transaction.category_id === categoryID && (type === 'Income' ? Number(transaction.amount) > 0 : Number(transaction.amount) < 0);
 }
 
 // Generate labels for x-axis
@@ -358,10 +358,10 @@ function getTimePeriodFactor(timePeriod: TimePeriod): number {
 }
 
 function Dashboard() {
-  const [transactions, setTransactions] = useState<db.Transaction[]>([]);
-  const [transactionsAll, setTransactionsAll] = useState<db.Transaction[]>([]);
-  const [categoriesIncome, setCategoriesIncome] = useState<db.Category[]>([]);
-  const [categoriesExpense, setCategoriesExpense] = useState<db.Category[]>([]);
+  const [transactions, setTransactions] = useState<ent.Transaction[]>([]);
+  const [transactionsAll, setTransactionsAll] = useState<ent.Transaction[]>([]);
+  const [categoriesIncome, setCategoriesIncome] = useState<ent.Category[]>([]);
+  const [categoriesExpense, setCategoriesExpense] = useState<ent.Category[]>([]);
   const [timePeriod, setTimePeriod] = useState<TimePeriod>({
     startDate: new Date(0),
     endDate: new Date(),
@@ -380,29 +380,29 @@ function Dashboard() {
     period: 'week',
   });
   const [selectedCategoryExpense, setSelectedCategoryExpense] =
-    useState<db.Category>();
+    useState<ent.Category>();
   const [selectedCategoryIncome, setSelectedCategoryIncome] =
-    useState<db.Category>();
+    useState<ent.Category>();
 
   useEffect(() => {
     // get transactions from db between time period
-    QueryTransactions(`SELECT * FROM Transactions where category <> '🚫 Ignore'`, []).then((resp: db.Transaction[]) => {
+    GetTransactions().then((resp: ent.Transaction[]) => {
       // calc reimbursements
       resp.forEach((transaction) => {
-        if (transaction.reimbursedBy) {
-          const reimbursedTransaction = resp.find((item) => item.id === transaction.reimbursedBy);
+        if (transaction.reimbursed_by_id) {
+          const reimbursedTransaction = resp.find((item) => item.id === transaction.reimbursed_by_id);
           if (reimbursedTransaction) {
-            transaction.amount = Math.min(transaction.amount + reimbursedTransaction.amount, 0);
+            transaction.amount = Math.min(Number(transaction.amount) + Number(reimbursedTransaction.amount), 0);
           }
         }
       });
       // remove reimbursed transaction from list
-      resp = resp.filter((transaction) => transaction.category !== '🔁 Reimbursement');
+      resp = resp.filter((transaction) => !transaction.reimbursed_by_id);
       setTransactionsAll(resp);
       if (resp != null && resp.length > 0) {
         // filter out transactions that are not in the time period
         const filteredTransactions = resp.filter((transaction) => {
-          const transactionDate = new Date(transaction.date);
+          const transactionDate = new Date(Number(transaction.time) * 1000);
           return (
             transactionDate >= timePeriod.startDate &&
             transactionDate <= timePeriod.endDate
@@ -412,26 +412,23 @@ function Dashboard() {
       }
     });
     // get categories from db
-    QueryCategories(`SELECT * FROM CategoriesExpense where name <> '🚫 Ignore'`, []).then((resp: db.Category[]) => {
-
+    GetCategories().then((resp: ent.Category[]) => {
       if (resp != null && resp.length > 0) {
-        setSelectedCategoryExpense(resp[0]);
-        setCategoriesExpense(resp);
-      }
-    });
-    QueryCategories(`SELECT * FROM CategoriesIncome where name <> '🚫 Ignore'`, []).then((resp: db.Category[]) => {
-      if (resp != null && resp.length > 0) {
-        setSelectedCategoryIncome(resp[0]);
-        setCategoriesIncome(resp);
+        const expense = resp.filter((c) => c.type === "Expense")
+        const income = resp.filter((c) => c.type === "Income")
+        setSelectedCategoryExpense(expense[0]);
+        setCategoriesExpense(expense);
+        setSelectedCategoryIncome(income[0]);
+        setCategoriesIncome(income);
       }
     });
   }, [timePeriod]);
 
   const transactionsExpense = transactions.filter(
-    (transaction) => transaction.amount < 0
+    (transaction) => Number(transaction.amount) < 0
   );
   const transactionsIncome = transactions.filter(
-    (transaction) => transaction.amount > 0
+    (transaction) => Number(transaction.amount) > 0
   );
   // wait for use state to be set before returning
   if (

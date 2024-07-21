@@ -30,8 +30,8 @@ import {
 } from 'material-react-table';
 import { useCallback, useMemo, useReducer } from 'react';
 
-import { Exec, QueryCategories } from "../../../wailsjs/go/db/Db";
-import { db } from "../../../wailsjs/go/models";
+import { CreateCategory, DeleteCategory, GetCategoriesByType, GetCategoryByID, UpdateCategory } from "../../../wailsjs/go/db/Db.js";
+import { ent } from "../../../wailsjs/go/models.js";
 
 import './CategoryTable.css';
 
@@ -58,16 +58,16 @@ const validateColour = (value: string) => {
   return regex.test(value);
 }
 
-function validateCategory(category: db.Category) {
+function validateCategory(category: ent.Category) {
   return {
-    name: !validateRequired(category.name) ? 'Name is required' : '',
+    name: !validateRequired(String(category.name)) ? 'Name is required' : '',
     monthly: !validateAmount(String(category.monthly))
       ? 'Target must be a positive number'
       : '',
     weekly: !validateAmount(String(category.weekly))
       ? 'Target must be a positive number'
       : '',
-    colour: !validateColour(category.colour) ? 'Colour must be a valid hex code' : '',
+    colour: !validateColour(String(category.colour)) ? 'Colour must be a valid hex code' : '',
   };
 }
 
@@ -76,27 +76,24 @@ function validateCategory(category: db.Category) {
 function useCreateCategory(type: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (category: db.Category) => {
+    mutationFn: async (category: ent.Category) => {
       // Calculate the other budget type if not provided
-      const monthly = category.monthly;
-      const weekly = category.weekly;
+      const monthly = Number(category.monthly);
+      const weekly = Number(category.weekly);
       if (!weekly || weekly === 0) {
         category.weekly = monthly / 4.34524; // Assuming 4.34524 weeks in a month
       } else if (!monthly || monthly === 0) {
         category.monthly = weekly * 4.34524; // Assuming 4.34524 weeks in a month
       }
       // update row in db
-      return await Exec(
-        `INSERT INTO Categories${type} (name, monthly, weekly, colour) VALUES (?, ?, ?, ?)`,
-        [category.name, category.monthly, category.weekly, category.colour]
-      );
+      return await CreateCategory(String(category.name), Number(category.monthly), Number(category.weekly), String(category.colour), String(type));
     },
     //client side optimistic update
-    onMutate: (newCategoryInfo: db.Category) => {
+    onMutate: (newCategoryInfo: ent.Category) => {
       queryClient.setQueryData(['categories' + type], (prevCategories: any) =>
         [
           ...prevCategories, newCategoryInfo
-        ] as db.Category[],
+        ] as ent.Category[],
       );
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: ['categories' + type] }),
@@ -104,10 +101,10 @@ function useCreateCategory(type: string) {
 }
 
 function useGetCategories(type: string) {
-  return useQuery<db.Category[]>({
+  return useQuery<ent.Category[]>({
     queryKey: ['categories' + type],
     queryFn: async () => {
-      return await QueryCategories(`SELECT * FROM Categories${type}`, []);
+      return await GetCategoriesByType(type);
     },
     refetchOnWindowFocus: false,
   });
@@ -116,31 +113,26 @@ function useGetCategories(type: string) {
 function useUpdateCategory(type: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (category: db.Category) => {
-      if (category.name === '🚫 Ignore' || category.name === '❓ Other' || category.name === '🔁 Reimbursement') {
-        window.alert('Cannot update default categories');
-        return;
-      }
+    mutationFn: async (category: ent.Category) => {
       // Get current record from db
-      const current = await QueryCategories(`SELECT * FROM Categories${type} WHERE name = ?`, [category.name]);
+      const current = await GetCategoryByID(Number(category.id));
       // Check if monthly or weekly is being updated
-      if (category.monthly !== current[0].monthly) {
-        category.weekly = category.monthly / 4.34524; // Assuming 4.34524 weeks in a month
-      } else if (category.weekly !== current[0].weekly) {
-        category.monthly = category.weekly * 4.34524; // Assuming 4.34524 weeks in a month
+      const monthly = Number(category.monthly);
+      const weekly = Number(category.weekly);
+      if (category.monthly !== current.monthly) {
+        category.weekly = monthly / 4.34524; // Assuming 4.34524 weeks in a month
+      } else if (category.weekly !== current.weekly) {
+        category.monthly = weekly * 4.34524; // Assuming 4.34524 weeks in a month
       }
 
       // update row in db
-      return await Exec(
-        `UPDATE Categories${type} SET name = ?, monthly = ?, weekly = ?, colour = ? WHERE name = ?`,
-        [category.name, category.monthly, category.weekly, category.colour, category.name]
-      );
+      return await UpdateCategory(Number(category.id), String(category.name), Number(category.monthly), Number(category.weekly), String(category.colour), String(category.type));
     },
     // client side optimistic update
-    onMutate: (newCategoryInfo: db.Category) => {
+    onMutate: (newCategoryInfo: ent.Category) => {
       queryClient.setQueryData(['categories' + type], (prevCategories: any) =>
-        prevCategories?.map((prevCategory: db.Category) =>
-          prevCategory.name === newCategoryInfo.name ? newCategoryInfo : prevCategory,
+        prevCategories?.map((prevCategory: ent.Category) =>
+          prevCategory.id === newCategoryInfo.id ? newCategoryInfo : prevCategory,
         ),
       );
     },
@@ -151,18 +143,14 @@ function useUpdateCategory(type: string) {
 function useDeleteCategory(type: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (name: string) => {
-      if (name === '🚫 Ignore' || name === '❓ Other' || name === '🔁 Reimbursement') {
-        window.alert('Cannot delete default categories');
-        return;
-      }
+    mutationFn: async (id: number) => {
       // update row in db
-      return await Exec(`DELETE FROM Categories${type} WHERE name = ?`, [name]);
+      return await DeleteCategory(id)
     },
     // client side optimistic update
-    onMutate: (name: string) => {
+    onMutate: (id: number) => {
       queryClient.setQueryData(['categories' + type], (prevCategories: any) =>
-        prevCategories?.filter((prevCategory: db.Category) => prevCategory.name !== name),
+        prevCategories?.filter((prevCategory: ent.Category) => prevCategory.id !== id),
       );
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: ['categories' + type] }),
@@ -224,11 +212,11 @@ const CategoryTable = ({ type }: { type: string }) => {
   const { mutateAsync: deleteCategory, isPending: isDeletingCategory } = useDeleteCategory(type);
 
   // actions
-  const handleCreateCategory: MRT_TableOptions<db.Category>['onCreatingRowSave'] = async ({
+  const handleCreateCategory: MRT_TableOptions<ent.Category>['onCreatingRowSave'] = async ({
     values,
     table,
   }: {
-    values: db.Category;
+    values: ent.Category;
     table: any;
   }) => {
     const newValidationErrors = validateCategory(values);
@@ -269,7 +257,7 @@ const CategoryTable = ({ type }: { type: string }) => {
     });
   }
 
-  const handleEditingRow = (table: any, row: MRT_Row<db.Category>) => {
+  const handleEditingRow = (table: any, row: MRT_Row<ent.Category>) => {
     dispatchValidationErrors({
       name: undefined,
       weeklyBudget: undefined,
@@ -279,17 +267,17 @@ const CategoryTable = ({ type }: { type: string }) => {
     table.setEditingRow(row);
   }
 
-  const openDeleteConfirmModal = (row: MRT_Row<db.Category>) => {
+  const openDeleteConfirmModal = (row: MRT_Row<ent.Category>) => {
     if (window.confirm('Are you sure you want to delete this Category?')) {
-      deleteCategory(row.original.name);
+      deleteCategory(Number(row.original.id));
     }
   };
 
-  const handleSaveCategory: MRT_TableOptions<db.Category>['onEditingRowSave'] = async ({
+  const handleSaveCategory: MRT_TableOptions<ent.Category>['onEditingRowSave'] = async ({
     values,
     table,
   }: {
-    values: db.Category;
+    values: ent.Category;
     table: any;
   }) => {
     const newValidationErrors = validateCategory(values);
@@ -307,7 +295,7 @@ const CategoryTable = ({ type }: { type: string }) => {
     table.setEditingRow(null);
   };
 
-  const columns = useMemo<MRT_ColumnDef<db.Category>[]>(
+  const columns = useMemo<MRT_ColumnDef<ent.Category>[]>(
     () => [
       {
         accessorKey: 'name',
@@ -397,7 +385,7 @@ const CategoryTable = ({ type }: { type: string }) => {
     [validationErrors],
   );
 
-  const table = useMaterialReactTable<db.Category>({
+  const table = useMaterialReactTable<ent.Category>({
     columns,
     data: fetchedCategories,
     createDisplayMode: 'row',
@@ -407,7 +395,7 @@ const CategoryTable = ({ type }: { type: string }) => {
     enableStickyHeader: true,
     enablePagination: false,
     memoMode: 'cells',
-    getRowId: (row) => row.name,
+    // getRowId: (row) => row.id,
     muiToolbarAlertBannerProps: isLoadingCategoriesError
       ? {
         color: 'error',
@@ -437,7 +425,7 @@ const CategoryTable = ({ type }: { type: string }) => {
     }),
     onEditingRowSave: handleSaveCategory,
     renderEditRowDialogContent: useCallback<
-      Required<MRT_TableOptions<db.Category>>['renderEditRowDialogContent']
+      Required<MRT_TableOptions<ent.Category>>['renderEditRowDialogContent']
     >(
       ({ table, row, internalEditComponents }) =>
         <>
@@ -454,7 +442,7 @@ const CategoryTable = ({ type }: { type: string }) => {
       [],
     ),
     renderRowActions: useCallback<
-      Required<MRT_TableOptions<db.Category>>['renderRowActions']
+      Required<MRT_TableOptions<ent.Category>>['renderRowActions']
     >(
       ({ row, table }) =>
         <Box sx={{ display: 'flex', gap: '1rem' }}>
@@ -472,7 +460,7 @@ const CategoryTable = ({ type }: { type: string }) => {
       [],
     ),
     renderTopToolbarCustomActions: useCallback<
-      Required<MRT_TableOptions<db.Category>>['renderTopToolbarCustomActions']
+      Required<MRT_TableOptions<ent.Category>>['renderTopToolbarCustomActions']
     >(
       ({ table }) =>
         <div className="table-top-toolbar-container">

@@ -7,12 +7,12 @@ import {
 } from '@mui/material';
 import { useEffect, useState } from 'react';
 
-import { db } from "../../../wailsjs/go/models";
+import { ent } from "../../../wailsjs/go/models";
 
 interface CategorySelectorProps {
   // eslint-disable-next-line no-unused-vars
-  onCategoryChange: (category: db.Category) => void;
-  categories: db.Category[];
+  onCategoryChange: (category: ent.Category) => void;
+  categories: ent.Category[];
 }
 
 function CategorySelector({
@@ -20,9 +20,9 @@ function CategorySelector({
   categories,
 }: CategorySelectorProps) {
   const [selectedOption, setSelectedOption] = useState(categories[0]);
-  const handleOptionChange = (event: SelectChangeEvent<db.Category>) => {
-    setSelectedOption(event.target.value as db.Category);
-    onCategoryChange(event.target.value as db.Category);
+  const handleOptionChange = (event: SelectChangeEvent<ent.Category>) => {
+    setSelectedOption(event.target.value as ent.Category);
+    onCategoryChange(event.target.value as ent.Category);
   };
 
   useEffect(() => {
@@ -44,7 +44,7 @@ function CategorySelector({
       >
         {categories.map((category) => (
           // @ts-ignore
-          <MenuItem key={category.name} value={category}>
+          <MenuItem key={category.id} value={category}>
             {category.name}
           </MenuItem>
         ))}
