@@ -1,6 +1,7 @@
 package db
 
 type Category struct {
+	ID      int     `json:"id"`
 	Name    string  `json:"name"`
 	Monthly float64 `json:"monthly"`
 	Weekly  float64 `json:"weekly"`
@@ -9,9 +10,9 @@ type Category struct {
 
 type Transaction struct {
 	ID           int     `json:"id"`
-	Date         string  `json:"date"`
+	Time         int64   `json:"time"`
 	Description  string  `json:"description"`
 	Amount       float64 `json:"amount"`
-	Category     string  `json:"category"`
-	ReimbursedBy *int    `json:"reimbursedBy"`
+	CategoryID   int     `json:"category_id"`
+	ReimbursedBy *int    `json:"reimbursed_by_id"`
 }

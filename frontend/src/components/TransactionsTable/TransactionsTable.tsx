@@ -17,6 +17,7 @@ import {
   Tooltip,
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { getUnixTime, parse } from 'date-fns';
 import debounce from "lodash.debounce";
 import {
   MRT_EditActionButtons,
@@ -31,11 +32,13 @@ import PopupState, { bindPopover, bindTrigger } from "material-ui-popup-state";
 import { useCallback, useMemo, useReducer, useState } from "react";
 
 import {
-  Exec,
-  QueryCategories,
-  QueryTransactions,
+  CreateTransaction,
+  DeleteTransaction,
+  GetCategoriesByType,
+  GetTransactions,
+  UpdateTransaction,
 } from "../../../wailsjs/go/db/Db";
-import { db } from "../../../wailsjs/go/models";
+import { ent } from "../../../wailsjs/go/models";
 import TransactionSearch from "../TransactionSearch/TransactionSearch";
 
 // validation functions
@@ -58,9 +61,14 @@ const formatDate = (value: string) => {
   });
 };
 
+const convertToUnixTimestamp = (pattern: string, dateStr: string) => {
+  const parsedDate = parse(dateStr, pattern, new Date());
+  return getUnixTime(parsedDate);
+}
+
 const validateRequired = (value: string) => !!value.length;
 
-const validateDate = (value: string) => {
+const validateDate = (value: number) => {
   const date = new Date(value);
   return !Number.isNaN(date.getTime());
 };
@@ -70,15 +78,15 @@ const validateAmount = (value: string) => {
   return !Number.isNaN(number);
 };
 
-const validateTransaction = (transaction: db.Transaction) => {
+const validateTransaction = (transaction: ent.Transaction) => {
   return {
-    date: validateDate(transaction.date)
+    date: validateDate(Number(transaction.time))
       ? undefined
       : "Date must be a valid date",
-    description: validateRequired(transaction.description)
+    description: validateRequired(String(transaction.description))
       ? undefined
       : "Description is required",
-    amount: validateAmount(transaction.amount.toString())
+    amount: validateAmount(Number(transaction.amount).toString())
       ? undefined
       : "Amount must be a number >0",
   };
@@ -89,29 +97,26 @@ const validateTransaction = (transaction: db.Transaction) => {
 function useCreateTransaction(type: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (transaction: db.Transaction) => {
+    mutationFn: async (transaction: ent.Transaction) => {
       if (type === "Income") {
-        transaction.amount = Math.abs(transaction.amount);
+        transaction.amount = Math.abs(Number(transaction.amount));
       } else {
-        transaction.amount = -Math.abs(transaction.amount);
+        transaction.amount = -Math.abs(Number(transaction.amount));
       }
       // update row in db
-      return await Exec(
-        `INSERT INTO Transactions (date, description, amount, category) VALUES (?, ?, ?, ?)`,
-        [
-          transaction.date,
-          transaction.description,
-          transaction.amount,
-          transaction.category,
-        ]
+      return await CreateTransaction(
+        Number(transaction.time),
+        String(transaction.description),
+        Number(transaction.amount),
+        Number(transaction.category_id),
       );
     },
     //client side optimistic update
-    onMutate: (newTransactionInfo: db.Transaction) => {
+    onMutate: (newTransactionInfo: ent.Transaction) => {
       queryClient.setQueryData(
         ["transactions"],
         (prevTransactions: any) =>
-          [...prevTransactions, newTransactionInfo] as db.Transaction[]
+          [...prevTransactions, newTransactionInfo] as ent.Transaction[]
       );
     },
     onSettled: () =>
@@ -120,22 +125,20 @@ function useCreateTransaction(type: string) {
 }
 
 function useGetCategories(type: string) {
-  return useQuery<db.Category[]>({
+  return useQuery<ent.Category[]>({
     queryKey: ["categories" + type],
     queryFn: async () => {
-      console.log("attempting to get categories from db");
-      return await QueryCategories(`SELECT * FROM Categories${type}`, []);
+      return await GetCategoriesByType(type);
     },
     refetchOnWindowFocus: false,
   });
 }
 
 function useGetTransactions(type: string) {
-  return useQuery<db.Transaction[]>({
+  return useQuery<ent.Transaction[]>({
     queryKey: ["transactions"],
     queryFn: async () => {
-      console.log("attempting to get transactions from db");
-      return await QueryTransactions(`SELECT * FROM Transactions`, []);
+      return await GetTransactions();
     },
     refetchOnWindowFocus: false,
   });
@@ -144,30 +147,26 @@ function useGetTransactions(type: string) {
 function useUpdateTransaction(type: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (transaction: db.Transaction) => {
-      console.log("updating: ", transaction);
-      if (type === "Income" || transaction.category === "🔁 Reimbursement") {
-        transaction.amount = Math.abs(transaction.amount);
+    mutationFn: async (transaction: ent.Transaction) => {
+      if (type === "Income") {
+        transaction.amount = Math.abs(Number(transaction.amount));
       } else {
-        transaction.amount = -Math.abs(transaction.amount);
+        transaction.amount = -Math.abs(Number(transaction.amount));
       }
       // update row in db
-      return await Exec(
-        `UPDATE Transactions SET date = ?, description = ?, amount = ?, category = ?, reimbursed_by = ? WHERE id = ?`,
-        [
-          transaction.date,
-          transaction.description,
-          transaction.amount,
-          transaction.category,
-          transaction.reimbursedBy,
-          transaction.id,
-        ]
+      return await UpdateTransaction(
+        Number(transaction.id),
+        Number(transaction.time),
+        String(transaction.description),
+        Number(transaction.amount),
+        Number(transaction.category_id),
+        Number(transaction.reimbursed_by_id)
       );
     },
     // client side optimistic update
-    onMutate: (newTransactionInfo: db.Transaction) => {
+    onMutate: (newTransactionInfo: ent.Transaction) => {
       queryClient.setQueryData(["transactions"], (prevTransactions: any) =>
-        prevTransactions?.map((prevTransaction: db.Transaction) =>
+        prevTransactions?.map((prevTransaction: ent.Transaction) =>
           prevTransaction.id === newTransactionInfo.id
             ? newTransactionInfo
             : prevTransaction
@@ -184,13 +183,13 @@ function useDeleteTransaction() {
   return useMutation({
     mutationFn: async (id: number) => {
       // update row in db
-      return await Exec(`DELETE FROM Transactions WHERE id = ?`, [id]);
+      return await DeleteTransaction(id);
     },
     // client side optimistic update
     onMutate: (id: number) => {
       queryClient.setQueryData(["transactions"], (prevTransactions: any) =>
         prevTransactions?.filter(
-          (prevTransaction: db.Transaction) => prevTransaction.id !== id
+          (prevTransaction: ent.Transaction) => prevTransaction.id !== id
         )
       );
     },
@@ -225,7 +224,7 @@ const TransactionsTable = ({ type }: { type: string }) => {
   const handleDateChange = debounce(
     useCallback(
       (event: { target: { value: string } }) => {
-        const isValid = validateDate(event.target.value);
+        const isValid = validateDate(convertToUnixTimestamp("dd/MM/yyyy", event.target.value));
 
         dispatchValidationErrors({
           date: isValid ? undefined : "Date must be a valid date",
@@ -286,13 +285,13 @@ const TransactionsTable = ({ type }: { type: string }) => {
 
   const filteredTransactions = useMemo(() => {
     return type === "Income"
-      ? fetchedTransactions.filter((transaction) => transaction.amount > 0)
-      : fetchedTransactions.filter((transaction) => transaction.amount < 0);
+      ? fetchedTransactions.filter((transaction) => Number(transaction.amount) > 0)
+      : fetchedTransactions.filter((transaction) => Number(transaction.amount) < 0);
   }, [type, fetchedTransactions]);
 
   // actions
-  const handleCreateTransaction: MRT_TableOptions<db.Transaction>["onCreatingRowSave"] =
-    async ({ values, table }: { values: db.Transaction; table: any }) => {
+  const handleCreateTransaction: MRT_TableOptions<ent.Transaction>["onCreatingRowSave"] =
+    async ({ values, table }: { values: ent.Transaction; table: any }) => {
       const newValidationErrors = validateTransaction(values);
       if (Object.values(newValidationErrors).some((error) => error)) {
         dispatchValidationErrors(newValidationErrors);
@@ -331,7 +330,7 @@ const TransactionsTable = ({ type }: { type: string }) => {
     });
   };
 
-  const handleEditingRow = (table: any, row: MRT_Row<db.Transaction>) => {
+  const handleEditingRow = (table: any, row: MRT_Row<ent.Transaction>) => {
     dispatchValidationErrors({
       date: undefined,
       description: undefined,
@@ -341,14 +340,14 @@ const TransactionsTable = ({ type }: { type: string }) => {
     table.setEditingRow(row);
   };
 
-  const openDeleteConfirmModal = (row: MRT_Row<db.Transaction>) => {
+  const openDeleteConfirmModal = (row: MRT_Row<ent.Transaction>) => {
     if (window.confirm("Are you sure you want to delete this Transaction?")) {
-      deleteTransaction(row.original.id);
+      deleteTransaction(Number(row.original.id));
     }
   };
 
-  const handleSaveTransaction: MRT_TableOptions<db.Transaction>["onEditingRowSave"] =
-    async ({ values, table }: { values: db.Transaction; table: any }) => {
+  const handleSaveTransaction: MRT_TableOptions<ent.Transaction>["onEditingRowSave"] =
+    async ({ values, table }: { values: ent.Transaction; table: any }) => {
       const newValidationErrors = validateTransaction(values);
       if (Object.values(newValidationErrors).some((error) => error)) {
         dispatchValidationErrors(newValidationErrors);
@@ -364,7 +363,7 @@ const TransactionsTable = ({ type }: { type: string }) => {
       table.setEditingRow(null);
     };
 
-  const columns = useMemo<MRT_ColumnDef<db.Transaction>[]>(
+  const columns = useMemo<MRT_ColumnDef<ent.Transaction>[]>(
     () => [
       {
         accessorKey: "id",
@@ -373,7 +372,7 @@ const TransactionsTable = ({ type }: { type: string }) => {
         enableEditing: false,
         enableSorting: false,
         size: 50,
-        hide: true, // no clue why this doesn't work so will have to do below
+        // hide: true, // no clue why this doesn't work so will have to do below
         // hide header
         muiTableHeadCellProps: {
           style: {
@@ -450,16 +449,16 @@ const TransactionsTable = ({ type }: { type: string }) => {
         Cell: ({ cell }) => {
           const transactionAmount = cell.getValue() as number;
           const reimbursedTransaction = fetchedTransactions.find(
-            (transaction) => transaction.id === cell.row.original.reimbursedBy
+            (transaction) => transaction.id === cell.row.original.reimbursed_by_id
           );
 
           if (reimbursedTransaction) {
-            const totalAmount = transactionAmount + reimbursedTransaction.amount;
+            const totalAmount = transactionAmount + Number(reimbursedTransaction.amount);
             return (
               <>
                 {formatCurrency(totalAmount)}{' '}
                 <span style={{ color: 'green' }}>
-                  ({formatCurrency(reimbursedTransaction.amount)} Reimbursed)
+                  ({formatCurrency(Number(reimbursedTransaction.amount))} Reimbursed)
                 </span>
               </>
             );
@@ -469,7 +468,7 @@ const TransactionsTable = ({ type }: { type: string }) => {
         },
       },
       {
-        accessorKey: "category",
+        accessorKey: "edges.category.name",
         header: "Category",
         size: 50,
         muiEditTextFieldProps: {
@@ -494,7 +493,7 @@ const TransactionsTable = ({ type }: { type: string }) => {
     [validationErrors, fetchedCategories]
   );
 
-  const table = useMaterialReactTable<db.Transaction>({
+  const table = useMaterialReactTable<ent.Transaction>({
     columns,
     data: filteredTransactions,
     createDisplayMode: "row",
@@ -539,7 +538,7 @@ const TransactionsTable = ({ type }: { type: string }) => {
       }),
     onEditingRowSave: handleSaveTransaction,
     renderEditRowDialogContent: useCallback<
-      Required<MRT_TableOptions<db.Transaction>>["renderEditRowDialogContent"]
+      Required<MRT_TableOptions<ent.Transaction>>["renderEditRowDialogContent"]
     >(
       ({ table, row, internalEditComponents }) => (
         <>
@@ -558,7 +557,7 @@ const TransactionsTable = ({ type }: { type: string }) => {
       []
     ),
     renderRowActions: useCallback<
-      Required<MRT_TableOptions<db.Transaction>>["renderRowActions"]
+      Required<MRT_TableOptions<ent.Transaction>>["renderRowActions"]
     >(
       ({ row, table }) => (
         <Box sx={{ display: "flex", gap: "1rem" }}>
@@ -601,20 +600,16 @@ const TransactionsTable = ({ type }: { type: string }) => {
                     <TransactionSearch
                       type="Income"
                       onSelect={(transaction) => {
-                        row.original.reimbursedBy = transaction.id;
-                        console.log(
-                          "reimbursedBy: ",
-                          row.original.reimbursedBy
-                        );
+                        row.original.reimbursed_by_id = transaction.id;
                         const reimbursedByTransaction =
                           fetchedTransactions.find(
                             (transaction) =>
-                              transaction.id === row.original.reimbursedBy
+                              transaction.id === row.original.reimbursed_by_id
                           );
-                        if (reimbursedByTransaction) {
-                          reimbursedByTransaction.category = "🔁 Reimbursement";
-                          updateTransaction(reimbursedByTransaction);
-                        }
+                        // if (reimbursedByTransaction) {
+                        //   reimbursedByTransaction.category_id = "🔁 Reimbursement";
+                        //   updateTransaction(reimbursedByTransaction);
+                        // }
                         updateTransaction(row.original);
                         popupState.close();
                       }}
@@ -630,7 +625,7 @@ const TransactionsTable = ({ type }: { type: string }) => {
     ),
     renderTopToolbarCustomActions: useCallback<
       Required<
-        MRT_TableOptions<db.Transaction>
+        MRT_TableOptions<ent.Transaction>
       >["renderTopToolbarCustomActions"]
     >(
       ({ table }) => (

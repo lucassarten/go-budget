@@ -2,7 +2,6 @@ package models
 
 import (
 	dbPkg "go-budget/internal/db"
-	"log"
 	"sort"
 
 	"github.com/agnivade/levenshtein"
@@ -13,13 +12,13 @@ var THRESHOLD = 10
 
 func Categorize(transactions []dbPkg.Transaction, toClassify []dbPkg.Transaction) ([]dbPkg.Transaction, int) {
 	// Split into expenses and income
-    expenses := lo.Filter(transactions, func(transaction dbPkg.Transaction, idx int) bool {
-        return transaction.Amount < 0
-    })
+	expenses := lo.Filter(transactions, func(transaction dbPkg.Transaction, idx int) bool {
+		return transaction.Amount < 0
+	})
 
-    income := lo.Filter(transactions, func(transaction dbPkg.Transaction, idx int) bool {
-        return transaction.Amount >= 0
-    })
+	income := lo.Filter(transactions, func(transaction dbPkg.Transaction, idx int) bool {
+		return transaction.Amount >= 0
+	})
 	// Track number of categorized transactions
 	numCategorized := 0
 	// Categorize
@@ -38,12 +37,11 @@ func Categorize(transactions []dbPkg.Transaction, toClassify []dbPkg.Transaction
 		}
 		// Ranking based on the filtered search list
 		ranks = RankLavenstein(t.Description, searchList)
-		log.Println("Best match for", t.Description, "is", ranks[0].Transaction.Description, "with distance", ranks[0].Distance)
-		if ranks[0].Distance < THRESHOLD {
-			toClassify[i].Category = ranks[0].Transaction.Category
+		if len(ranks) > 0 && ranks[0].Distance < THRESHOLD {
+			toClassify[i].CategoryID = ranks[0].Transaction.CategoryID
 			numCategorized += 1
 		} else {
-			toClassify[i].Category = "❗ Uncategorized"
+			toClassify[i].CategoryID = 0
 		}
 	}
 	return toClassify, numCategorized
