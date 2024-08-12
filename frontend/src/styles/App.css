@@ -1,6 +1,7 @@
 @import url("../components/Dashboard/Dashboard.css");
 @import url("./TabBar.css");
 @import url("../components/TransactionsTable/TransactionsTable.css");
+@import url("../components/TransactionSearch/TransactionSearch.css");
 @import url("../components/CategoryTable/CategoryTable.css");
 @import url("../components/Statistics/Statistics.css");
 @import url("./Theme.css");

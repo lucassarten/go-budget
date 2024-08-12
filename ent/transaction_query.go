@@ -4,7 +4,6 @@ package ent
 
 import (
 	"context"
-	"database/sql/driver"
 	"fmt"
 	"go-budget/ent/category"
 	"go-budget/ent/predicate"
@@ -25,8 +24,6 @@ type TransactionQuery struct {
 	predicates                  []predicate.Transaction
 	withCategory                *CategoryQuery
 	withReimbursedByTransaction *TransactionQuery
-	withReimburses              *TransactionQuery
-	withFKs                     bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -99,29 +96,7 @@ func (tq *TransactionQuery) QueryReimbursedByTransaction() *TransactionQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(transaction.Table, transaction.FieldID, selector),
 			sqlgraph.To(transaction.Table, transaction.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, transaction.ReimbursedByTransactionTable, transaction.ReimbursedByTransactionColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(tq.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
-}
-
-// QueryReimburses chains the current query on the "reimburses" edge.
-func (tq *TransactionQuery) QueryReimburses() *TransactionQuery {
-	query := (&TransactionClient{config: tq.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := tq.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := tq.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(transaction.Table, transaction.FieldID, selector),
-			sqlgraph.To(transaction.Table, transaction.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, transaction.ReimbursesTable, transaction.ReimbursesColumn),
+			sqlgraph.Edge(sqlgraph.O2O, false, transaction.ReimbursedByTransactionTable, transaction.ReimbursedByTransactionColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(tq.driver.Dialect(), step)
 		return fromU, nil
@@ -323,7 +298,6 @@ func (tq *TransactionQuery) Clone() *TransactionQuery {
 		predicates:                  append([]predicate.Transaction{}, tq.predicates...),
 		withCategory:                tq.withCategory.Clone(),
 		withReimbursedByTransaction: tq.withReimbursedByTransaction.Clone(),
-		withReimburses:              tq.withReimburses.Clone(),
 		// clone intermediate query.
 		sql:  tq.sql.Clone(),
 		path: tq.path,
@@ -349,17 +323,6 @@ func (tq *TransactionQuery) WithReimbursedByTransaction(opts ...func(*Transactio
 		opt(query)
 	}
 	tq.withReimbursedByTransaction = query
-	return tq
-}
-
-// WithReimburses tells the query-builder to eager-load the nodes that are connected to
-// the "reimburses" edge. The optional arguments are used to configure the query builder of the edge.
-func (tq *TransactionQuery) WithReimburses(opts ...func(*TransactionQuery)) *TransactionQuery {
-	query := (&TransactionClient{config: tq.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	tq.withReimburses = query
 	return tq
 }
 
@@ -440,20 +403,12 @@ func (tq *TransactionQuery) prepareQuery(ctx context.Context) error {
 func (tq *TransactionQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Transaction, error) {
 	var (
 		nodes       = []*Transaction{}
-		withFKs     = tq.withFKs
 		_spec       = tq.querySpec()
-		loadedTypes = [3]bool{
+		loadedTypes = [2]bool{
 			tq.withCategory != nil,
 			tq.withReimbursedByTransaction != nil,
-			tq.withReimburses != nil,
 		}
 	)
-	if tq.withReimbursedByTransaction != nil {
-		withFKs = true
-	}
-	if withFKs {
-		_spec.Node.Columns = append(_spec.Node.Columns, transaction.ForeignKeys...)
-	}
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*Transaction).scanValues(nil, columns)
 	}
@@ -481,12 +436,6 @@ func (tq *TransactionQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*
 	if query := tq.withReimbursedByTransaction; query != nil {
 		if err := tq.loadReimbursedByTransaction(ctx, query, nodes, nil,
 			func(n *Transaction, e *Transaction) { n.Edges.ReimbursedByTransaction = e }); err != nil {
-			return nil, err
-		}
-	}
-	if query := tq.withReimburses; query != nil {
-		if err := tq.loadReimburses(ctx, query, nodes, nil,
-			func(n *Transaction, e *Transaction) { n.Edges.Reimburses = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -526,10 +475,10 @@ func (tq *TransactionQuery) loadReimbursedByTransaction(ctx context.Context, que
 	ids := make([]int, 0, len(nodes))
 	nodeids := make(map[int][]*Transaction)
 	for i := range nodes {
-		if nodes[i].transaction_reimburses == nil {
+		if nodes[i].ReimbursedByID == nil {
 			continue
 		}
-		fk := *nodes[i].transaction_reimburses
+		fk := *nodes[i].ReimbursedByID
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}
@@ -546,39 +495,11 @@ func (tq *TransactionQuery) loadReimbursedByTransaction(ctx context.Context, que
 	for _, n := range neighbors {
 		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "transaction_reimburses" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "reimbursed_by_id" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
 		}
-	}
-	return nil
-}
-func (tq *TransactionQuery) loadReimburses(ctx context.Context, query *TransactionQuery, nodes []*Transaction, init func(*Transaction), assign func(*Transaction, *Transaction)) error {
-	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[int]*Transaction)
-	for i := range nodes {
-		fks = append(fks, nodes[i].ID)
-		nodeids[nodes[i].ID] = nodes[i]
-	}
-	query.withFKs = true
-	query.Where(predicate.Transaction(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(transaction.ReimbursesColumn), fks...))
-	}))
-	neighbors, err := query.All(ctx)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		fk := n.transaction_reimburses
-		if fk == nil {
-			return fmt.Errorf(`foreign-key "transaction_reimburses" is nil for node %v`, n.ID)
-		}
-		node, ok := nodeids[*fk]
-		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "transaction_reimburses" returned %v for node %v`, *fk, n.ID)
-		}
-		assign(node, n)
 	}
 	return nil
 }
@@ -610,6 +531,9 @@ func (tq *TransactionQuery) querySpec() *sqlgraph.QuerySpec {
 		}
 		if tq.withCategory != nil {
 			_spec.Node.AddColumnOnce(transaction.FieldCategoryID)
+		}
+		if tq.withReimbursedByTransaction != nil {
+			_spec.Node.AddColumnOnce(transaction.FieldReimbursedByID)
 		}
 	}
 	if ps := tq.predicates; len(ps) > 0 {

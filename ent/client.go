@@ -489,23 +489,7 @@ func (c *TransactionClient) QueryReimbursedByTransaction(t *Transaction) *Transa
 		step := sqlgraph.NewStep(
 			sqlgraph.From(transaction.Table, transaction.FieldID, id),
 			sqlgraph.To(transaction.Table, transaction.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, transaction.ReimbursedByTransactionTable, transaction.ReimbursedByTransactionColumn),
-		)
-		fromV = sqlgraph.Neighbors(t.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// QueryReimburses queries the reimburses edge of a Transaction.
-func (c *TransactionClient) QueryReimburses(t *Transaction) *TransactionQuery {
-	query := (&TransactionClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := t.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(transaction.Table, transaction.FieldID, id),
-			sqlgraph.To(transaction.Table, transaction.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, transaction.ReimbursesTable, transaction.ReimbursesColumn),
+			sqlgraph.Edge(sqlgraph.O2O, false, transaction.ReimbursedByTransactionTable, transaction.ReimbursedByTransactionColumn),
 		)
 		fromV = sqlgraph.Neighbors(t.driver.Dialect(), step)
 		return fromV, nil

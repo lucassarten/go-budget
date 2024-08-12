@@ -3,12 +3,9 @@ package main
 import (
 	"context"
 	//"strconv"
-
 	//dbPkg "go-budget/internal/db"
 	//"go-budget/internal/models"
 	//"go-budget/internal/parser"
-
-	//"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // App struct
@@ -20,9 +17,6 @@ type App struct {
 func NewApp() *App {
 	return &App{}
 }
-
-// startup is called when the app starts. The context is saved
-// so we can call the runtime methods
 
 func (a *App) shutdown(ctx context.Context) {
 	a.ctx = ctx

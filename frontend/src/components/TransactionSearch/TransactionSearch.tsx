@@ -2,17 +2,15 @@
 /* eslint-disable promise/catch-or-return */
 /* eslint-disable no-nested-ternary */
 /* eslint-disable camelcase */
-import { Box, Button } from "@mui/material";
+import { Box, Button, Switch } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
-import {
-  MaterialReactTable,
-  useMaterialReactTable,
-  type MRT_ColumnDef,
-  type MRT_TableOptions,
-} from "material-react-table";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
-import { GetTransactionsExpense, GetTransactionsIncome } from "../../../wailsjs/go/db/Db";
+import { ColDef } from "ag-grid-community";
+import "ag-grid-community/styles/ag-grid.css";
+import "ag-grid-community/styles/ag-theme-material.css";
+import { AgGridReact } from "ag-grid-react";
+import { GetCategoriesByType, GetTransactions } from "../../../wailsjs/go/db/Db";
 import { ent } from "../../../wailsjs/go/models";
 
 // validation functions
@@ -39,7 +37,17 @@ function useGetTransactions(type: string) {
   return useQuery<ent.Transaction[]>({
     queryKey: ["reimbursements"],
     queryFn: async () => {
-      return await type === "Income" ? GetTransactionsIncome() : GetTransactionsExpense();
+      return await GetTransactions();
+    },
+    refetchOnWindowFocus: false,
+  });
+}
+
+function useGetCategories(type: string) {
+  return useQuery<ent.Category[]>({
+    queryKey: ["categories" + type],
+    queryFn: async () => {
+      return await GetCategoriesByType(type);
     },
     refetchOnWindowFocus: false,
   });
@@ -56,6 +64,7 @@ const TransactionSearch = ({
     pageIndex: 0,
     pageSize: 20,
   });
+  const [reimbursedOnly, setReimbursedOnly] = useState(true)
   // hooks
   const {
     data: fetchedTransactions = [],
@@ -63,6 +72,12 @@ const TransactionSearch = ({
     isFetching: isFetchingTransactions,
     isLoading: isLoadingTransactions,
   } = useGetTransactions(type);
+  const {
+    data: fetchedCategories = [],
+    isError: isLoadingCategoriesError,
+    isFetching: isFetchingCategories,
+    isLoading: isLoadingCategories,
+  } = useGetCategories(type);
 
   const filteredTransactions = useMemo(() => {
     return type === "Income"
@@ -70,116 +85,102 @@ const TransactionSearch = ({
       : fetchedTransactions.filter((transaction) => Number(transaction.amount) < 0);
   }, [type, fetchedTransactions]);
 
-  const columns = useMemo<MRT_ColumnDef<ent.Transaction>[]>(
-    () => [
-      {
-        accessorKey: "id",
-        header: "ID",
-        enableColumnOrdering: false,
-        enableEditing: false,
-        enableSorting: false,
-        size: 50,
-        hide: true, // no clue why this doesn't work so will have to do below
-        // hide header
-        muiTableHeadCellProps: {
-          style: {
-            display: "none",
-          },
-        },
-        // hide cell
-        muiTableBodyCellProps: {
-          style: {
-            display: "none",
-          },
-        },
-      },
-      {
-        accessorKey: "date",
-        header: "Date",
-        type: "date",
-        dateSetting: { locale: "en-NZ" },
-        format: "dd/MM/yyyy",
-        size: 100,
-        // display as DD/MM/YYYY
-        Cell: ({ cell }) => formatDate(cell.getValue() as string),
-      },
-      {
-        accessorKey: "description",
-        header: "Description",
-        size: 250,
-      },
-      {
-        accessorKey: "amount",
-        header: "Amount",
-        size: 50,
-        // format as currency
-        Cell: ({ cell }) => formatCurrency(cell.getValue() as number),
-      },
-      {
-        accessorKey: "category",
-        header: "Category",
-        size: 50,
-      },
-    ],
-    []
-  );
+  // filteredTransactions.forEach(transaction => {
+  //   console.log(transaction);
+  // })
 
-  const table = useMaterialReactTable<ent.Transaction>({
-    columns,
-    data: filteredTransactions,
-    createDisplayMode: "row",
-    enableEditing: true,
-    enableBottomToolbar: true,
-    enableStickyFooter: true,
-    enableTopToolbar: true,
-    enableStickyHeader: true,
-    enablePagination: true,
-    onPaginationChange: setPagination,
-    memoMode: "cells",
-    // getRowId: (row) => row.id,
-    muiTableContainerProps: {
-      sx: {
-        minHeight: "calc(100vh - 167px)",
+  const nonReimbursedTransactions = useMemo(() => {
+    return filteredTransactions.filter((transaction) =>
+      transaction.edges.reimbursed_by_transaction == null
+    )
+  }, [filteredTransactions]);
+
+  const categoryIds = useMemo(() => (
+    fetchedCategories.map((category) => (category.id))
+  ), [fetchedCategories]);
+
+  const colDefs = useMemo<ColDef<ent.Transaction>[]>(() => (
+    [
+      {
+        cellRenderer: (props: any) => {
+          return <Box sx={{ display: "flex", gap: "1rem" }}>
+            <Button onClick={() => onSelect(props.data)}>Select</Button>
+          </Box>
+        },
+        suppressHeaderFilterButton: true,
+        suppressAutoSize: true,
+        editable: false,
+        minWidth: 100,
+        maxWidth: 100,
       },
-      style: {
-        maxHeight: "calc(100vh - 167px)",
+      {
+        field: "time",
+        headerName: "Date",
+        sort: "desc",
+        cellEditor: "agDateCellEditor",
+        valueFormatter: params => formatDate(params.value),
       },
-    },
-    renderRowActions: useCallback<
-      Required<MRT_TableOptions<ent.Transaction>>["renderRowActions"]
-    >(
-      ({ row, table }) => (
-        <Box sx={{ display: "flex", gap: "1rem" }}>
-          <Button onClick={() => onSelect(row.original)}>Select</Button>
-        </Box>
-      ),
-      []
-    ),
-    renderTopToolbarCustomActions: useCallback<
-      Required<
-        MRT_TableOptions<ent.Transaction>
-      >["renderTopToolbarCustomActions"]
-    >(
-      ({ table }) => (
-        <div className="table-top-toolbar-container">
-          <Button onClick={() => onSelect(new ent.Transaction())}>None</Button>
-        </div>
-      ),
-      []
-    ),
-    state: {
-      isLoading: isLoadingTransactions,
-      showAlertBanner: isLoadingTransactionsError,
-      showProgressBars: isFetchingTransactions,
-      pagination,
-    },
-  });
+      {
+        field: "description",
+      },
+      {
+        field: "amount",
+        valueFormatter: params => formatCurrency(params.value),
+      },
+      {
+        field: "category_id",
+        headerName: "Category",
+        cellStyle: { 'textAlign': "left" },
+        cellEditor: 'agSelectCellEditor',
+        cellEditorParams: {
+          values: categoryIds,
+          useFormatter: true
+        },
+        valueFormatter: params => fetchedCategories.find(cat => cat.id === params.value)?.name || 'unknown',
+        valueParser: params => fetchedCategories.find(cat => cat.name === params.newValue)?.id
+      }
+    ]), [categoryIds]);
+
+  const defaultColDef = useMemo(() => ({
+    filter: true,
+    editable: true
+  }), []);
+
+  const gridRef = useRef<AgGridReact>(null);
+
+  const onGridReady = useCallback((event: any) => {
+    event.api.sizeColumnsToFit();
+  }, []);
+
+  const onGridSizeChanged = useCallback((event: any) => {
+    event.api.sizeColumnsToFit();
+  }, []);
+
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setReimbursedOnly(event.target.checked);
+    gridRef.current?.api.redrawRows();
+  };
 
   return (
-    <div className="reimbursementPopover">
-      <MaterialReactTable table={table} />
-    </div>
-  );
+    <>
+      <Box className="transactions-search-toolbar" alignItems="center">
+        <Button className="transactions-search-toolbar-button" onClick={() => onSelect(new ent.Transaction())}>None</Button>
+        <div className='transactions-search-toolbar-text'>Show only non-reimbursed</ div>
+        <Switch defaultChecked onChange={handleChange} />
+      </Box>
+      <div className="ag-theme-material-dark" style={{ height: 'calc(100% - 30px)' }}>
+        <AgGridReact
+          ref={gridRef}
+          rowData={reimbursedOnly ? nonReimbursedTransactions : filteredTransactions}
+          columnDefs={colDefs}
+          defaultColDef={defaultColDef}
+          onGridReady={onGridReady}
+          onGridSizeChanged={onGridSizeChanged}
+        //onColumnResized={onGridSizeChanged}
+        //onCellValueChanged={onCellValueChanged}
+        />
+      </div >
+    </>);
 };
 
 export default TransactionSearch;

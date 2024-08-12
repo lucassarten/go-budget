@@ -116,7 +116,7 @@ func (db *Db) GetTransactionByID(id int) (*ent.Transaction, error) {
 }
 
 func (db *Db) GetTransactions() ([]*ent.Transaction, error) {
-	txs, err := db.client.Transaction.Query().WithCategory().WithReimbursedByTransaction().WithReimburses().All(db.ctx)
+	txs, err := db.client.Transaction.Query().WithCategory().WithReimbursedByTransaction().All(db.ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get transactions: %w", err)
 	}
@@ -124,7 +124,7 @@ func (db *Db) GetTransactions() ([]*ent.Transaction, error) {
 }
 
 func (db *Db) GetTransactionsIncome() ([]*ent.Transaction, error) {
-	txs, err := db.client.Transaction.Query().Where(transaction.AmountGT(0.0)).All(db.ctx)
+	txs, err := db.client.Transaction.Query().WithCategory().WithReimbursedByTransaction().Where(transaction.AmountGT(0.0)).All(db.ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get transactions: %w", err)
 	}
@@ -132,7 +132,7 @@ func (db *Db) GetTransactionsIncome() ([]*ent.Transaction, error) {
 }
 
 func (db *Db) GetTransactionsExpense() ([]*ent.Transaction, error) {
-	txs, err := db.client.Transaction.Query().Where(transaction.AmountLTE(0.0)).All(db.ctx)
+	txs, err := db.client.Transaction.Query().WithCategory().WithReimbursedByTransaction().Where(transaction.AmountLTE(0.0)).All(db.ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get transactions: %w", err)
 	}
@@ -201,6 +201,10 @@ func (db *Db) CreateCategory(name string, monthly float64, weekly float64, colou
 
 // UpdateTransaction updates a transaction with the given details
 func (db *Db) UpdateTransaction(id int, time *int64, description *string, amount *float64, categoryID *int, reimbursedByID *int) (*ent.Transaction, error) {
+	// println(id, *description, *categoryID, *time)
+	// if reimbursedByID != nil {
+	// 	println(*reimbursedByID)
+	// }
 	tx, err := db.client.Transaction.Get(db.ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("transaction not found: %w", err)
@@ -220,8 +224,26 @@ func (db *Db) UpdateTransaction(id int, time *int64, description *string, amount
 	if categoryID != nil {
 		updater.SetCategoryID(*categoryID)
 	}
-	if reimbursedByID != nil {
+	if reimbursedByID != nil { // deep update
+		existingReimbursedByTx, err := db.client.Transaction.Query().
+			Where(transaction.IDEQ(*reimbursedByID)).
+			Only(db.ctx)
+		if err != nil && !ent.IsNotFound(err) {
+			return nil, fmt.Errorf("failed to query existing reimbursed_by_id transaction: %w", err)
+		}
+		if existingReimbursedByTx != nil {
+			_, err := existingReimbursedByTx.Update().
+				ClearReimbursedByID().
+				ClearReimbursedByTransaction().
+				Save(db.ctx)
+			if err != nil {
+				return nil, fmt.Errorf("failed to clear existing reimbursed_by_id transaction: %w", err)
+			}
+		}
 		updater.SetReimbursedByID(*reimbursedByID)
+	} else {
+		updater.ClearReimbursedByID()
+		updater.ClearReimbursedByTransaction()
 	}
 
 	tx, err = updater.Save(db.ctx)
@@ -339,7 +361,7 @@ func generateTestIncomes() []Transaction {
 	// Generate 50 test income transactions
 	for i := 0; i < 50; i++ {
 		// Randomly select an income category
-		categoryIndex := len(defaultCategoriesExpense) + rand.Intn(len(defaultCategoriesIncome) - 1)
+		categoryIndex := len(defaultCategoriesExpense) + rand.Intn(len(defaultCategoriesIncome)-1)
 		category := categoryIndex
 
 		// Generate a random amount between 100 and 1000
@@ -369,5 +391,5 @@ func generateRandomDate() int64 {
 
 	// Generate a random date within the last 90 days
 	sec := rand.Int63n(delta) + min
-	return sec
+	return sec * 1000
 }

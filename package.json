@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "@ag-grid-community/core": "^32.0.2",
+    "@types/react": "^18.3.3",
+    "ag-grid-react": "^32.0.2",
+    "react-draggable": "^4.4.6"
+  }
+}

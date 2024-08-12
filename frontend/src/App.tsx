@@ -9,9 +9,11 @@ import CategoryTable from './components/CategoryTable/CategoryTable';
 import Dashboard from './components/Dashboard/Dashboard';
 import Statistics from './components/Statistics/Statistics';
 import TransactionsTable from './components/TransactionsTable/TransactionsTable';
-
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFnsV3';
 type Tab = 'dashboard' | 'statistics' | 'income' | 'expenses' | 'budgetTargets';
 
+import { LocalizationProvider } from '@mui/x-date-pickers';
+import { enNZ } from 'date-fns/locale/en-NZ';
 
 const darkTheme = createTheme({
   palette: {
@@ -35,7 +37,7 @@ function IncomeView() {
   return (
     <div className="transactions-tables-container">
       <div className="transactions-table-Income">
-        <TransactionsTable type="Income" />;
+        <TransactionsTable type="Income" />
       </div>
     </div>
   );
@@ -45,7 +47,7 @@ function ExpensesView() {
   return (
     <div className="transactions-tables-container">
       <div className="transactions-table-Expense">
-        <TransactionsTable type="Expense" />;
+        <TransactionsTable type="Expense" />
       </div>
     </div>
   );
@@ -133,14 +135,16 @@ const queryClient = new QueryClient()
 
 export default function App() {
   return (
-    <ThemeProvider theme={darkTheme}>
-      <QueryClientProvider client={queryClient}>
-        <Router>
-          <Routes>
-            <Route path="/" element={<MainLayout />} />
-          </Routes>
-        </Router>
-      </QueryClientProvider>
-    </ThemeProvider>
+    <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={enNZ}>
+      <ThemeProvider theme={darkTheme}>
+        <QueryClientProvider client={queryClient}>
+          <Router>
+            <Routes>
+              <Route path="/" element={<MainLayout />} />
+            </Routes>
+          </Router>
+        </QueryClientProvider>
+      </ThemeProvider>
+    </LocalizationProvider>
   );
 }

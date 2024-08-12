@@ -106,7 +106,6 @@ func (tu *TransactionUpdate) ClearCategoryID() *TransactionUpdate {
 
 // SetReimbursedByID sets the "reimbursed_by_id" field.
 func (tu *TransactionUpdate) SetReimbursedByID(i int) *TransactionUpdate {
-	tu.mutation.ResetReimbursedByID()
 	tu.mutation.SetReimbursedByID(i)
 	return tu
 }
@@ -116,12 +115,6 @@ func (tu *TransactionUpdate) SetNillableReimbursedByID(i *int) *TransactionUpdat
 	if i != nil {
 		tu.SetReimbursedByID(*i)
 	}
-	return tu
-}
-
-// AddReimbursedByID adds i to the "reimbursed_by_id" field.
-func (tu *TransactionUpdate) AddReimbursedByID(i int) *TransactionUpdate {
-	tu.mutation.AddReimbursedByID(i)
 	return tu
 }
 
@@ -155,25 +148,6 @@ func (tu *TransactionUpdate) SetReimbursedByTransaction(t *Transaction) *Transac
 	return tu.SetReimbursedByTransactionID(t.ID)
 }
 
-// SetReimbursesID sets the "reimburses" edge to the Transaction entity by ID.
-func (tu *TransactionUpdate) SetReimbursesID(id int) *TransactionUpdate {
-	tu.mutation.SetReimbursesID(id)
-	return tu
-}
-
-// SetNillableReimbursesID sets the "reimburses" edge to the Transaction entity by ID if the given value is not nil.
-func (tu *TransactionUpdate) SetNillableReimbursesID(id *int) *TransactionUpdate {
-	if id != nil {
-		tu = tu.SetReimbursesID(*id)
-	}
-	return tu
-}
-
-// SetReimburses sets the "reimburses" edge to the Transaction entity.
-func (tu *TransactionUpdate) SetReimburses(t *Transaction) *TransactionUpdate {
-	return tu.SetReimbursesID(t.ID)
-}
-
 // Mutation returns the TransactionMutation object of the builder.
 func (tu *TransactionUpdate) Mutation() *TransactionMutation {
 	return tu.mutation
@@ -188,12 +162,6 @@ func (tu *TransactionUpdate) ClearCategory() *TransactionUpdate {
 // ClearReimbursedByTransaction clears the "reimbursed_by_transaction" edge to the Transaction entity.
 func (tu *TransactionUpdate) ClearReimbursedByTransaction() *TransactionUpdate {
 	tu.mutation.ClearReimbursedByTransaction()
-	return tu
-}
-
-// ClearReimburses clears the "reimburses" edge to the Transaction entity.
-func (tu *TransactionUpdate) ClearReimburses() *TransactionUpdate {
-	tu.mutation.ClearReimburses()
 	return tu
 }
 
@@ -248,15 +216,6 @@ func (tu *TransactionUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if value, ok := tu.mutation.AddedAmount(); ok {
 		_spec.AddField(transaction.FieldAmount, field.TypeFloat64, value)
 	}
-	if value, ok := tu.mutation.ReimbursedByID(); ok {
-		_spec.SetField(transaction.FieldReimbursedByID, field.TypeInt, value)
-	}
-	if value, ok := tu.mutation.AddedReimbursedByID(); ok {
-		_spec.AddField(transaction.FieldReimbursedByID, field.TypeInt, value)
-	}
-	if tu.mutation.ReimbursedByIDCleared() {
-		_spec.ClearField(transaction.FieldReimbursedByID, field.TypeInt)
-	}
 	if tu.mutation.CategoryCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -289,10 +248,10 @@ func (tu *TransactionUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if tu.mutation.ReimbursedByTransactionCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
-			Inverse: true,
+			Inverse: false,
 			Table:   transaction.ReimbursedByTransactionTable,
 			Columns: []string{transaction.ReimbursedByTransactionColumn},
-			Bidi:    false,
+			Bidi:    true,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(transaction.FieldID, field.TypeInt),
 			},
@@ -302,39 +261,10 @@ func (tu *TransactionUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if nodes := tu.mutation.ReimbursedByTransactionIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
-			Inverse: true,
+			Inverse: false,
 			Table:   transaction.ReimbursedByTransactionTable,
 			Columns: []string{transaction.ReimbursedByTransactionColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(transaction.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if tu.mutation.ReimbursesCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: false,
-			Table:   transaction.ReimbursesTable,
-			Columns: []string{transaction.ReimbursesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(transaction.FieldID, field.TypeInt),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := tu.mutation.ReimbursesIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: false,
-			Table:   transaction.ReimbursesTable,
-			Columns: []string{transaction.ReimbursesColumn},
-			Bidi:    false,
+			Bidi:    true,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(transaction.FieldID, field.TypeInt),
 			},
@@ -442,7 +372,6 @@ func (tuo *TransactionUpdateOne) ClearCategoryID() *TransactionUpdateOne {
 
 // SetReimbursedByID sets the "reimbursed_by_id" field.
 func (tuo *TransactionUpdateOne) SetReimbursedByID(i int) *TransactionUpdateOne {
-	tuo.mutation.ResetReimbursedByID()
 	tuo.mutation.SetReimbursedByID(i)
 	return tuo
 }
@@ -452,12 +381,6 @@ func (tuo *TransactionUpdateOne) SetNillableReimbursedByID(i *int) *TransactionU
 	if i != nil {
 		tuo.SetReimbursedByID(*i)
 	}
-	return tuo
-}
-
-// AddReimbursedByID adds i to the "reimbursed_by_id" field.
-func (tuo *TransactionUpdateOne) AddReimbursedByID(i int) *TransactionUpdateOne {
-	tuo.mutation.AddReimbursedByID(i)
 	return tuo
 }
 
@@ -491,25 +414,6 @@ func (tuo *TransactionUpdateOne) SetReimbursedByTransaction(t *Transaction) *Tra
 	return tuo.SetReimbursedByTransactionID(t.ID)
 }
 
-// SetReimbursesID sets the "reimburses" edge to the Transaction entity by ID.
-func (tuo *TransactionUpdateOne) SetReimbursesID(id int) *TransactionUpdateOne {
-	tuo.mutation.SetReimbursesID(id)
-	return tuo
-}
-
-// SetNillableReimbursesID sets the "reimburses" edge to the Transaction entity by ID if the given value is not nil.
-func (tuo *TransactionUpdateOne) SetNillableReimbursesID(id *int) *TransactionUpdateOne {
-	if id != nil {
-		tuo = tuo.SetReimbursesID(*id)
-	}
-	return tuo
-}
-
-// SetReimburses sets the "reimburses" edge to the Transaction entity.
-func (tuo *TransactionUpdateOne) SetReimburses(t *Transaction) *TransactionUpdateOne {
-	return tuo.SetReimbursesID(t.ID)
-}
-
 // Mutation returns the TransactionMutation object of the builder.
 func (tuo *TransactionUpdateOne) Mutation() *TransactionMutation {
 	return tuo.mutation
@@ -524,12 +428,6 @@ func (tuo *TransactionUpdateOne) ClearCategory() *TransactionUpdateOne {
 // ClearReimbursedByTransaction clears the "reimbursed_by_transaction" edge to the Transaction entity.
 func (tuo *TransactionUpdateOne) ClearReimbursedByTransaction() *TransactionUpdateOne {
 	tuo.mutation.ClearReimbursedByTransaction()
-	return tuo
-}
-
-// ClearReimburses clears the "reimburses" edge to the Transaction entity.
-func (tuo *TransactionUpdateOne) ClearReimburses() *TransactionUpdateOne {
-	tuo.mutation.ClearReimburses()
 	return tuo
 }
 
@@ -614,15 +512,6 @@ func (tuo *TransactionUpdateOne) sqlSave(ctx context.Context) (_node *Transactio
 	if value, ok := tuo.mutation.AddedAmount(); ok {
 		_spec.AddField(transaction.FieldAmount, field.TypeFloat64, value)
 	}
-	if value, ok := tuo.mutation.ReimbursedByID(); ok {
-		_spec.SetField(transaction.FieldReimbursedByID, field.TypeInt, value)
-	}
-	if value, ok := tuo.mutation.AddedReimbursedByID(); ok {
-		_spec.AddField(transaction.FieldReimbursedByID, field.TypeInt, value)
-	}
-	if tuo.mutation.ReimbursedByIDCleared() {
-		_spec.ClearField(transaction.FieldReimbursedByID, field.TypeInt)
-	}
 	if tuo.mutation.CategoryCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -655,10 +544,10 @@ func (tuo *TransactionUpdateOne) sqlSave(ctx context.Context) (_node *Transactio
 	if tuo.mutation.ReimbursedByTransactionCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
-			Inverse: true,
+			Inverse: false,
 			Table:   transaction.ReimbursedByTransactionTable,
 			Columns: []string{transaction.ReimbursedByTransactionColumn},
-			Bidi:    false,
+			Bidi:    true,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(transaction.FieldID, field.TypeInt),
 			},
@@ -668,39 +557,10 @@ func (tuo *TransactionUpdateOne) sqlSave(ctx context.Context) (_node *Transactio
 	if nodes := tuo.mutation.ReimbursedByTransactionIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
-			Inverse: true,
+			Inverse: false,
 			Table:   transaction.ReimbursedByTransactionTable,
 			Columns: []string{transaction.ReimbursedByTransactionColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(transaction.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if tuo.mutation.ReimbursesCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: false,
-			Table:   transaction.ReimbursesTable,
-			Columns: []string{transaction.ReimbursesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(transaction.FieldID, field.TypeInt),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := tuo.mutation.ReimbursesIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: false,
-			Table:   transaction.ReimbursesTable,
-			Columns: []string{transaction.ReimbursesColumn},
-			Bidi:    false,
+			Bidi:    true,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(transaction.FieldID, field.TypeInt),
 			},
