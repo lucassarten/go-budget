@@ -3,7 +3,6 @@ export namespace ent {
 	export class TransactionEdges {
 	    category?: Category;
 	    reimbursed_by_transaction?: Transaction;
-	    reimburses?: Transaction;
 	
 	    static createFrom(source: any = {}) {
 	        return new TransactionEdges(source);
@@ -13,7 +12,6 @@ export namespace ent {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.category = this.convertValues(source["category"], Category);
 	        this.reimbursed_by_transaction = this.convertValues(source["reimbursed_by_transaction"], Transaction);
-	        this.reimburses = this.convertValues(source["reimburses"], Transaction);
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {

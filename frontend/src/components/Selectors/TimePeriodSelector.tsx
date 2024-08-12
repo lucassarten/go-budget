@@ -9,6 +9,7 @@ import {
 import { useState } from 'react';
 
 import { TimePeriod } from '../Dashboard/Dashboard';
+import { DateField } from '@mui/x-date-pickers';
 
 interface TimePeriodSelectorProps {
   // eslint-disable-next-line no-unused-vars
@@ -71,6 +72,10 @@ function TimePeriodSelector({ onTimePeriodChange }: TimePeriodSelectorProps) {
         endDateCalc.setFullYear(endDateCalc.getFullYear() + 1);
         endDateCalc.setDate(endDateCalc.getDate() - 1);
         break;
+      case 'all':
+        startDateCalc = new Date(0);
+        endDateCalc = new Date();
+        break;
       case 'custom':
         startDateCalc = startDate;
         endDateCalc = endDate;
@@ -82,8 +87,12 @@ function TimePeriodSelector({ onTimePeriodChange }: TimePeriodSelectorProps) {
         endDateCalc.setDate(endDateCalc.getDate() + 6);
         break;
     }
+
     startDateCalc.setHours(0, 0, 0, 0);
     endDateCalc.setHours(23, 59, 59, 999);
+
+    setStartDate(startDateCalc);
+    setEndDate(endDateCalc);
 
     onTimePeriodChange({
       startDate: startDateCalc,
@@ -92,18 +101,22 @@ function TimePeriodSelector({ onTimePeriodChange }: TimePeriodSelectorProps) {
     });
   };
 
-  const handleStartDateChange = (date: Date) => {
-    setStartDate(date);
-    handleOptionChange({
-      target: { value: 'custom' },
-    } as SelectChangeEvent<string>);
+  const handleStartDateChange = (date: Date | null) => {
+    if (date != null) {
+      setStartDate(date);
+      handleOptionChange({
+        target: { value: 'custom' },
+      } as SelectChangeEvent<string>);
+    }
   };
 
-  const handleEndDateChange = (date: Date) => {
-    setEndDate(date);
-    handleOptionChange({
-      target: { value: 'custom' },
-    } as SelectChangeEvent<string>);
+  const handleEndDateChange = (date: Date | null) => {
+    if (date != null) {
+      setEndDate(date);
+      handleOptionChange({
+        target: { value: 'custom' },
+      } as SelectChangeEvent<string>);
+    }
   };
 
   return (
@@ -128,45 +141,40 @@ function TimePeriodSelector({ onTimePeriodChange }: TimePeriodSelectorProps) {
         </Select>
       </FormControl>
       <div className="time-period-custom-container">
-        <TextField
+        <DateField
           label="Start Date"
           id="startDatePicker"
-          onChange={(e) => {
-            handleStartDateChange(new Date(e.target.value));
+          onChange={(newValue) => {
+            handleStartDateChange(newValue);
           }}
           onBlur={(e) => {
             handleOptionChange({
               target: { value: 'custom' },
             } as SelectChangeEvent<string>);
           }}
-          type="date"
           InputLabelProps={{
             shrink: true,
           }}
           disabled={selectedOption !== 'custom'}
-          value={
-            validateDate(startDate) ? startDate.toISOString().split('T')[0] : ''
-          }
+          value={startDate}
+          // renderInput={(params) => <TextField {...params} />}
         />
-        <TextField
+        <DateField
           label="End Date"
           id="endDatePicker"
-          onChange={(e) => {
-            handleEndDateChange(new Date(e.target.value));
+          onChange={(newValue) => {
+            handleEndDateChange(newValue);
           }}
           onBlur={(e) => {
             handleOptionChange({
               target: { value: 'custom' },
             } as SelectChangeEvent<string>);
           }}
-          type="date"
           InputLabelProps={{
             shrink: true,
           }}
           disabled={selectedOption !== 'custom'}
-          value={
-            validateDate(endDate) ? endDate.toISOString().split('T')[0] : ''
-          }
+          value={endDate}
         />
       </div>
     </>

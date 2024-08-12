@@ -104,25 +104,6 @@ func (tc *TransactionCreate) SetReimbursedByTransaction(t *Transaction) *Transac
 	return tc.SetReimbursedByTransactionID(t.ID)
 }
 
-// SetReimbursesID sets the "reimburses" edge to the Transaction entity by ID.
-func (tc *TransactionCreate) SetReimbursesID(id int) *TransactionCreate {
-	tc.mutation.SetReimbursesID(id)
-	return tc
-}
-
-// SetNillableReimbursesID sets the "reimburses" edge to the Transaction entity by ID if the given value is not nil.
-func (tc *TransactionCreate) SetNillableReimbursesID(id *int) *TransactionCreate {
-	if id != nil {
-		tc = tc.SetReimbursesID(*id)
-	}
-	return tc
-}
-
-// SetReimburses sets the "reimburses" edge to the Transaction entity.
-func (tc *TransactionCreate) SetReimburses(t *Transaction) *TransactionCreate {
-	return tc.SetReimbursesID(t.ID)
-}
-
 // Mutation returns the TransactionMutation object of the builder.
 func (tc *TransactionCreate) Mutation() *TransactionMutation {
 	return tc.mutation
@@ -219,10 +200,6 @@ func (tc *TransactionCreate) createSpec() (*Transaction, *sqlgraph.CreateSpec) {
 		_spec.SetField(transaction.FieldAmount, field.TypeFloat64, value)
 		_node.Amount = value
 	}
-	if value, ok := tc.mutation.ReimbursedByID(); ok {
-		_spec.SetField(transaction.FieldReimbursedByID, field.TypeInt, value)
-		_node.ReimbursedByID = value
-	}
 	if nodes := tc.mutation.CategoryIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -243,10 +220,10 @@ func (tc *TransactionCreate) createSpec() (*Transaction, *sqlgraph.CreateSpec) {
 	if nodes := tc.mutation.ReimbursedByTransactionIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
-			Inverse: true,
+			Inverse: false,
 			Table:   transaction.ReimbursedByTransactionTable,
 			Columns: []string{transaction.ReimbursedByTransactionColumn},
-			Bidi:    false,
+			Bidi:    true,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(transaction.FieldID, field.TypeInt),
 			},
@@ -254,23 +231,7 @@ func (tc *TransactionCreate) createSpec() (*Transaction, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.transaction_reimburses = &nodes[0]
-		_spec.Edges = append(_spec.Edges, edge)
-	}
-	if nodes := tc.mutation.ReimbursesIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: false,
-			Table:   transaction.ReimbursesTable,
-			Columns: []string{transaction.ReimbursesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(transaction.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
+		_node.ReimbursedByID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

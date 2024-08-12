@@ -19,7 +19,7 @@ func (Transaction) Fields() []ent.Field {
 		field.String("description"),
 		field.Float("amount").Default(0.0),
 		field.Int("category_id").Optional(),
-		field.Int("reimbursed_by_id").Optional(),
+		field.Int("reimbursed_by_id").Optional().Nillable(),
 	}
 }
 
@@ -27,6 +27,6 @@ func (Transaction) Fields() []ent.Field {
 func (Transaction) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("category", Category.Type).Ref("transactions").Unique().Field("category_id"),
-		edge.To("reimburses", Transaction.Type).Unique().From("reimbursed_by_transaction").Unique(),
+		edge.To("reimbursed_by_transaction", Transaction.Type).Unique().Field("reimbursed_by_id"),
 	}
 }

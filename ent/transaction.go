@@ -26,12 +26,11 @@ type Transaction struct {
 	// CategoryID holds the value of the "category_id" field.
 	CategoryID int `json:"category_id,omitempty"`
 	// ReimbursedByID holds the value of the "reimbursed_by_id" field.
-	ReimbursedByID int `json:"reimbursed_by_id,omitempty"`
+	ReimbursedByID *int `json:"reimbursed_by_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the TransactionQuery when eager-loading is set.
-	Edges                  TransactionEdges `json:"edges"`
-	transaction_reimburses *int
-	selectValues           sql.SelectValues
+	Edges        TransactionEdges `json:"edges"`
+	selectValues sql.SelectValues
 }
 
 // TransactionEdges holds the relations/edges for other nodes in the graph.
@@ -40,11 +39,9 @@ type TransactionEdges struct {
 	Category *Category `json:"category,omitempty"`
 	// ReimbursedByTransaction holds the value of the reimbursed_by_transaction edge.
 	ReimbursedByTransaction *Transaction `json:"reimbursed_by_transaction,omitempty"`
-	// Reimburses holds the value of the reimburses edge.
-	Reimburses *Transaction `json:"reimburses,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [2]bool
 }
 
 // CategoryOrErr returns the Category value or an error if the edge
@@ -69,17 +66,6 @@ func (e TransactionEdges) ReimbursedByTransactionOrErr() (*Transaction, error) {
 	return nil, &NotLoadedError{edge: "reimbursed_by_transaction"}
 }
 
-// ReimbursesOrErr returns the Reimburses value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e TransactionEdges) ReimbursesOrErr() (*Transaction, error) {
-	if e.Reimburses != nil {
-		return e.Reimburses, nil
-	} else if e.loadedTypes[2] {
-		return nil, &NotFoundError{label: transaction.Label}
-	}
-	return nil, &NotLoadedError{edge: "reimburses"}
-}
-
 // scanValues returns the types for scanning values from sql.Rows.
 func (*Transaction) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
@@ -91,8 +77,6 @@ func (*Transaction) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullInt64)
 		case transaction.FieldDescription:
 			values[i] = new(sql.NullString)
-		case transaction.ForeignKeys[0]: // transaction_reimburses
-			values[i] = new(sql.NullInt64)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -142,14 +126,8 @@ func (t *Transaction) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field reimbursed_by_id", values[i])
 			} else if value.Valid {
-				t.ReimbursedByID = int(value.Int64)
-			}
-		case transaction.ForeignKeys[0]:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for edge-field transaction_reimburses", value)
-			} else if value.Valid {
-				t.transaction_reimburses = new(int)
-				*t.transaction_reimburses = int(value.Int64)
+				t.ReimbursedByID = new(int)
+				*t.ReimbursedByID = int(value.Int64)
 			}
 		default:
 			t.selectValues.Set(columns[i], values[i])
@@ -172,11 +150,6 @@ func (t *Transaction) QueryCategory() *CategoryQuery {
 // QueryReimbursedByTransaction queries the "reimbursed_by_transaction" edge of the Transaction entity.
 func (t *Transaction) QueryReimbursedByTransaction() *TransactionQuery {
 	return NewTransactionClient(t.config).QueryReimbursedByTransaction(t)
-}
-
-// QueryReimburses queries the "reimburses" edge of the Transaction entity.
-func (t *Transaction) QueryReimburses() *TransactionQuery {
-	return NewTransactionClient(t.config).QueryReimburses(t)
 }
 
 // Update returns a builder for updating this Transaction.
@@ -214,8 +187,10 @@ func (t *Transaction) String() string {
 	builder.WriteString("category_id=")
 	builder.WriteString(fmt.Sprintf("%v", t.CategoryID))
 	builder.WriteString(", ")
-	builder.WriteString("reimbursed_by_id=")
-	builder.WriteString(fmt.Sprintf("%v", t.ReimbursedByID))
+	if v := t.ReimbursedByID; v != nil {
+		builder.WriteString("reimbursed_by_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteByte(')')
 	return builder.String()
 }

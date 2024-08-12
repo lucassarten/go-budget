@@ -274,26 +274,6 @@ func ReimbursedByIDNotIn(vs ...int) predicate.Transaction {
 	return predicate.Transaction(sql.FieldNotIn(FieldReimbursedByID, vs...))
 }
 
-// ReimbursedByIDGT applies the GT predicate on the "reimbursed_by_id" field.
-func ReimbursedByIDGT(v int) predicate.Transaction {
-	return predicate.Transaction(sql.FieldGT(FieldReimbursedByID, v))
-}
-
-// ReimbursedByIDGTE applies the GTE predicate on the "reimbursed_by_id" field.
-func ReimbursedByIDGTE(v int) predicate.Transaction {
-	return predicate.Transaction(sql.FieldGTE(FieldReimbursedByID, v))
-}
-
-// ReimbursedByIDLT applies the LT predicate on the "reimbursed_by_id" field.
-func ReimbursedByIDLT(v int) predicate.Transaction {
-	return predicate.Transaction(sql.FieldLT(FieldReimbursedByID, v))
-}
-
-// ReimbursedByIDLTE applies the LTE predicate on the "reimbursed_by_id" field.
-func ReimbursedByIDLTE(v int) predicate.Transaction {
-	return predicate.Transaction(sql.FieldLTE(FieldReimbursedByID, v))
-}
-
 // ReimbursedByIDIsNil applies the IsNil predicate on the "reimbursed_by_id" field.
 func ReimbursedByIDIsNil() predicate.Transaction {
 	return predicate.Transaction(sql.FieldIsNull(FieldReimbursedByID))
@@ -332,7 +312,7 @@ func HasReimbursedByTransaction() predicate.Transaction {
 	return predicate.Transaction(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, ReimbursedByTransactionTable, ReimbursedByTransactionColumn),
+			sqlgraph.Edge(sqlgraph.O2O, false, ReimbursedByTransactionTable, ReimbursedByTransactionColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
@@ -342,29 +322,6 @@ func HasReimbursedByTransaction() predicate.Transaction {
 func HasReimbursedByTransactionWith(preds ...predicate.Transaction) predicate.Transaction {
 	return predicate.Transaction(func(s *sql.Selector) {
 		step := newReimbursedByTransactionStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
-}
-
-// HasReimburses applies the HasEdge predicate on the "reimburses" edge.
-func HasReimburses() predicate.Transaction {
-	return predicate.Transaction(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, ReimbursesTable, ReimbursesColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasReimbursesWith applies the HasEdge predicate on the "reimburses" edge with a given conditions (other predicates).
-func HasReimbursesWith(preds ...predicate.Transaction) predicate.Transaction {
-	return predicate.Transaction(func(s *sql.Selector) {
-		step := newReimbursesStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

@@ -749,15 +749,11 @@ type TransactionMutation struct {
 	description                      *string
 	amount                           *float64
 	addamount                        *float64
-	reimbursed_by_id                 *int
-	addreimbursed_by_id              *int
 	clearedFields                    map[string]struct{}
 	category                         *int
 	clearedcategory                  bool
 	reimbursed_by_transaction        *int
 	clearedreimbursed_by_transaction bool
-	reimburses                       *int
-	clearedreimburses                bool
 	done                             bool
 	oldValue                         func(context.Context) (*Transaction, error)
 	predicates                       []predicate.Transaction
@@ -1066,13 +1062,12 @@ func (m *TransactionMutation) ResetCategoryID() {
 
 // SetReimbursedByID sets the "reimbursed_by_id" field.
 func (m *TransactionMutation) SetReimbursedByID(i int) {
-	m.reimbursed_by_id = &i
-	m.addreimbursed_by_id = nil
+	m.reimbursed_by_transaction = &i
 }
 
 // ReimbursedByID returns the value of the "reimbursed_by_id" field in the mutation.
 func (m *TransactionMutation) ReimbursedByID() (r int, exists bool) {
-	v := m.reimbursed_by_id
+	v := m.reimbursed_by_transaction
 	if v == nil {
 		return
 	}
@@ -1082,7 +1077,7 @@ func (m *TransactionMutation) ReimbursedByID() (r int, exists bool) {
 // OldReimbursedByID returns the old "reimbursed_by_id" field's value of the Transaction entity.
 // If the Transaction object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *TransactionMutation) OldReimbursedByID(ctx context.Context) (v int, err error) {
+func (m *TransactionMutation) OldReimbursedByID(ctx context.Context) (v *int, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldReimbursedByID is only allowed on UpdateOne operations")
 	}
@@ -1096,28 +1091,9 @@ func (m *TransactionMutation) OldReimbursedByID(ctx context.Context) (v int, err
 	return oldValue.ReimbursedByID, nil
 }
 
-// AddReimbursedByID adds i to the "reimbursed_by_id" field.
-func (m *TransactionMutation) AddReimbursedByID(i int) {
-	if m.addreimbursed_by_id != nil {
-		*m.addreimbursed_by_id += i
-	} else {
-		m.addreimbursed_by_id = &i
-	}
-}
-
-// AddedReimbursedByID returns the value that was added to the "reimbursed_by_id" field in this mutation.
-func (m *TransactionMutation) AddedReimbursedByID() (r int, exists bool) {
-	v := m.addreimbursed_by_id
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
 // ClearReimbursedByID clears the value of the "reimbursed_by_id" field.
 func (m *TransactionMutation) ClearReimbursedByID() {
-	m.reimbursed_by_id = nil
-	m.addreimbursed_by_id = nil
+	m.reimbursed_by_transaction = nil
 	m.clearedFields[transaction.FieldReimbursedByID] = struct{}{}
 }
 
@@ -1129,8 +1105,7 @@ func (m *TransactionMutation) ReimbursedByIDCleared() bool {
 
 // ResetReimbursedByID resets all changes to the "reimbursed_by_id" field.
 func (m *TransactionMutation) ResetReimbursedByID() {
-	m.reimbursed_by_id = nil
-	m.addreimbursed_by_id = nil
+	m.reimbursed_by_transaction = nil
 	delete(m.clearedFields, transaction.FieldReimbursedByID)
 }
 
@@ -1169,11 +1144,12 @@ func (m *TransactionMutation) SetReimbursedByTransactionID(id int) {
 // ClearReimbursedByTransaction clears the "reimbursed_by_transaction" edge to the Transaction entity.
 func (m *TransactionMutation) ClearReimbursedByTransaction() {
 	m.clearedreimbursed_by_transaction = true
+	m.clearedFields[transaction.FieldReimbursedByID] = struct{}{}
 }
 
 // ReimbursedByTransactionCleared reports if the "reimbursed_by_transaction" edge to the Transaction entity was cleared.
 func (m *TransactionMutation) ReimbursedByTransactionCleared() bool {
-	return m.clearedreimbursed_by_transaction
+	return m.ReimbursedByIDCleared() || m.clearedreimbursed_by_transaction
 }
 
 // ReimbursedByTransactionID returns the "reimbursed_by_transaction" edge ID in the mutation.
@@ -1198,45 +1174,6 @@ func (m *TransactionMutation) ReimbursedByTransactionIDs() (ids []int) {
 func (m *TransactionMutation) ResetReimbursedByTransaction() {
 	m.reimbursed_by_transaction = nil
 	m.clearedreimbursed_by_transaction = false
-}
-
-// SetReimbursesID sets the "reimburses" edge to the Transaction entity by id.
-func (m *TransactionMutation) SetReimbursesID(id int) {
-	m.reimburses = &id
-}
-
-// ClearReimburses clears the "reimburses" edge to the Transaction entity.
-func (m *TransactionMutation) ClearReimburses() {
-	m.clearedreimburses = true
-}
-
-// ReimbursesCleared reports if the "reimburses" edge to the Transaction entity was cleared.
-func (m *TransactionMutation) ReimbursesCleared() bool {
-	return m.clearedreimburses
-}
-
-// ReimbursesID returns the "reimburses" edge ID in the mutation.
-func (m *TransactionMutation) ReimbursesID() (id int, exists bool) {
-	if m.reimburses != nil {
-		return *m.reimburses, true
-	}
-	return
-}
-
-// ReimbursesIDs returns the "reimburses" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// ReimbursesID instead. It exists only for internal usage by the builders.
-func (m *TransactionMutation) ReimbursesIDs() (ids []int) {
-	if id := m.reimburses; id != nil {
-		ids = append(ids, *id)
-	}
-	return
-}
-
-// ResetReimburses resets all changes to the "reimburses" edge.
-func (m *TransactionMutation) ResetReimburses() {
-	m.reimburses = nil
-	m.clearedreimburses = false
 }
 
 // Where appends a list predicates to the TransactionMutation builder.
@@ -1286,7 +1223,7 @@ func (m *TransactionMutation) Fields() []string {
 	if m.category != nil {
 		fields = append(fields, transaction.FieldCategoryID)
 	}
-	if m.reimbursed_by_id != nil {
+	if m.reimbursed_by_transaction != nil {
 		fields = append(fields, transaction.FieldReimbursedByID)
 	}
 	return fields
@@ -1384,9 +1321,6 @@ func (m *TransactionMutation) AddedFields() []string {
 	if m.addamount != nil {
 		fields = append(fields, transaction.FieldAmount)
 	}
-	if m.addreimbursed_by_id != nil {
-		fields = append(fields, transaction.FieldReimbursedByID)
-	}
 	return fields
 }
 
@@ -1399,8 +1333,6 @@ func (m *TransactionMutation) AddedField(name string) (ent.Value, bool) {
 		return m.AddedTime()
 	case transaction.FieldAmount:
 		return m.AddedAmount()
-	case transaction.FieldReimbursedByID:
-		return m.AddedReimbursedByID()
 	}
 	return nil, false
 }
@@ -1423,13 +1355,6 @@ func (m *TransactionMutation) AddField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.AddAmount(v)
-		return nil
-	case transaction.FieldReimbursedByID:
-		v, ok := value.(int)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.AddReimbursedByID(v)
 		return nil
 	}
 	return fmt.Errorf("unknown Transaction numeric field %s", name)
@@ -1494,15 +1419,12 @@ func (m *TransactionMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *TransactionMutation) AddedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 2)
 	if m.category != nil {
 		edges = append(edges, transaction.EdgeCategory)
 	}
 	if m.reimbursed_by_transaction != nil {
 		edges = append(edges, transaction.EdgeReimbursedByTransaction)
-	}
-	if m.reimburses != nil {
-		edges = append(edges, transaction.EdgeReimburses)
 	}
 	return edges
 }
@@ -1519,17 +1441,13 @@ func (m *TransactionMutation) AddedIDs(name string) []ent.Value {
 		if id := m.reimbursed_by_transaction; id != nil {
 			return []ent.Value{*id}
 		}
-	case transaction.EdgeReimburses:
-		if id := m.reimburses; id != nil {
-			return []ent.Value{*id}
-		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *TransactionMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 2)
 	return edges
 }
 
@@ -1541,15 +1459,12 @@ func (m *TransactionMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *TransactionMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 2)
 	if m.clearedcategory {
 		edges = append(edges, transaction.EdgeCategory)
 	}
 	if m.clearedreimbursed_by_transaction {
 		edges = append(edges, transaction.EdgeReimbursedByTransaction)
-	}
-	if m.clearedreimburses {
-		edges = append(edges, transaction.EdgeReimburses)
 	}
 	return edges
 }
@@ -1562,8 +1477,6 @@ func (m *TransactionMutation) EdgeCleared(name string) bool {
 		return m.clearedcategory
 	case transaction.EdgeReimbursedByTransaction:
 		return m.clearedreimbursed_by_transaction
-	case transaction.EdgeReimburses:
-		return m.clearedreimburses
 	}
 	return false
 }
@@ -1578,9 +1491,6 @@ func (m *TransactionMutation) ClearEdge(name string) error {
 	case transaction.EdgeReimbursedByTransaction:
 		m.ClearReimbursedByTransaction()
 		return nil
-	case transaction.EdgeReimburses:
-		m.ClearReimburses()
-		return nil
 	}
 	return fmt.Errorf("unknown Transaction unique edge %s", name)
 }
@@ -1594,9 +1504,6 @@ func (m *TransactionMutation) ResetEdge(name string) error {
 		return nil
 	case transaction.EdgeReimbursedByTransaction:
 		m.ResetReimbursedByTransaction()
-		return nil
-	case transaction.EdgeReimburses:
-		m.ResetReimburses()
 		return nil
 	}
 	return fmt.Errorf("unknown Transaction edge %s", name)

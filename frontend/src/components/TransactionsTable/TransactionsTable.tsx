@@ -2,35 +2,29 @@
 /* eslint-disable promise/catch-or-return */
 /* eslint-disable no-nested-ternary */
 /* eslint-disable camelcase */
-import AddIcon from "@mui/icons-material/Add";
-import DeleteIcon from "@mui/icons-material/Delete";
-import EditIcon from "@mui/icons-material/Edit";
-import {
-  Box,
-  Button,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  IconButton,
-  MenuItem,
-  Popover,
-  Tooltip,
-} from "@mui/material";
+import DeleteIcon from '@mui/icons-material/Delete';
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getUnixTime, parse } from 'date-fns';
 import debounce from "lodash.debounce";
-import {
-  MRT_EditActionButtons,
-  MaterialReactTable,
-  createRow,
-  useMaterialReactTable,
-  type MRT_ColumnDef,
-  type MRT_Row,
-  type MRT_TableOptions,
-} from "material-react-table";
-import PopupState, { bindPopover, bindTrigger } from "material-ui-popup-state";
-import { useCallback, useMemo, useReducer, useState } from "react";
+import Draggable from "react-draggable";
+// import {
+//   MRT_EditActionButtons,
+//   MaterialReactTable,
+//   createRow,
+//   useMaterialReactTable,
+//   type MRT_ColumnDef,
+//   type MRT_Row,
+//   type MRT_TableOptions,
+// } from "material-react-table";
+import "ag-grid-community/styles/ag-grid.css";
+import "ag-grid-community/styles/ag-theme-material.css";
 
+import { AgGridReact } from 'ag-grid-react';
+import { useCallback, useMemo, useReducer, useRef, useState } from "react";
+
+import { Box, Button, IconButton, Popover, Tooltip } from "@mui/material";
+import { ColDef } from "ag-grid-community";
+import PopupState, { bindPopover, bindTrigger } from 'material-ui-popup-state';
 import {
   CreateTransaction,
   DeleteTransaction,
@@ -39,9 +33,12 @@ import {
   UpdateTransaction,
 } from "../../../wailsjs/go/db/Db";
 import { ent } from "../../../wailsjs/go/models";
-import TransactionSearch from "../TransactionSearch/TransactionSearch";
+import TransactionSearch from '../TransactionSearch/TransactionSearch';
 
 // validation functions
+
+const unixToDate = (timestamp: number) => new Date(timestamp * 1000);
+const dateToUnix = (date: { getTime: () => number; }) => Math.floor(date.getTime() / 1000);
 
 const formatCurrency = (value: number) => {
   const formatter = new Intl.NumberFormat("en-US", {
@@ -52,7 +49,7 @@ const formatCurrency = (value: number) => {
   return formatter.format(value);
 };
 
-const formatDate = (value: string) => {
+const formatDate = (value: number) => {
   const date = new Date(value);
   return date.toLocaleDateString("en-NZ", {
     day: "numeric",
@@ -148,6 +145,7 @@ function useUpdateTransaction(type: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (transaction: ent.Transaction) => {
+      console.log(transaction)
       if (type === "Income") {
         transaction.amount = Math.abs(Number(transaction.amount));
       } else {
@@ -224,7 +222,8 @@ const TransactionsTable = ({ type }: { type: string }) => {
   const handleDateChange = debounce(
     useCallback(
       (event: { target: { value: string } }) => {
-        const isValid = validateDate(convertToUnixTimestamp("dd/MM/yyyy", event.target.value));
+        const time = convertToUnixTimestamp("yyyy-MM-dd", event.target.value)
+        const isValid = validateDate(time);
 
         dispatchValidationErrors({
           date: isValid ? undefined : "Date must be a valid date",
@@ -289,368 +288,195 @@ const TransactionsTable = ({ type }: { type: string }) => {
       : fetchedTransactions.filter((transaction) => Number(transaction.amount) < 0);
   }, [type, fetchedTransactions]);
 
-  // actions
-  const handleCreateTransaction: MRT_TableOptions<ent.Transaction>["onCreatingRowSave"] =
-    async ({ values, table }: { values: ent.Transaction; table: any }) => {
-      const newValidationErrors = validateTransaction(values);
-      if (Object.values(newValidationErrors).some((error) => error)) {
-        dispatchValidationErrors(newValidationErrors);
-        return;
-      }
-      dispatchValidationErrors({
-        date: undefined,
-        description: undefined,
-        amount: undefined,
-        category: undefined,
-      });
-      await createTransaction(values);
-      table.setCreatingRow(false);
-    };
+  const categoryIds = useMemo(() => (
+    fetchedCategories.map((category) => (category.id))
+  ), [fetchedCategories]);
 
-  const handleCreatingRow = (table: any) => {
-    table.setCreatingRow(true);
-    dispatchValidationErrors({
-      date: undefined,
-      description: undefined,
-      amount: undefined,
-      category: undefined,
-    });
-    table.setCreatingRow(
-      createRow(table, {
-        date: new Date().toISOString().split("T")[0],
-        description: "",
-        amount: 1,
-        category: fetchedCategories[0]?.name || "",
-      })
-    );
-    // scroll to top of table
-    document.querySelector(".MuiTableContainer-root")?.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
-  };
-
-  const handleEditingRow = (table: any, row: MRT_Row<ent.Transaction>) => {
-    dispatchValidationErrors({
-      date: undefined,
-      description: undefined,
-      amount: undefined,
-      category: undefined,
-    });
-    table.setEditingRow(row);
-  };
-
-  const openDeleteConfirmModal = (row: MRT_Row<ent.Transaction>) => {
-    if (window.confirm("Are you sure you want to delete this Transaction?")) {
-      deleteTransaction(Number(row.original.id));
-    }
-  };
-
-  const handleSaveTransaction: MRT_TableOptions<ent.Transaction>["onEditingRowSave"] =
-    async ({ values, table }: { values: ent.Transaction; table: any }) => {
-      const newValidationErrors = validateTransaction(values);
-      if (Object.values(newValidationErrors).some((error) => error)) {
-        dispatchValidationErrors(newValidationErrors);
-        return;
-      }
-      dispatchValidationErrors({
-        date: undefined,
-        description: undefined,
-        amount: undefined,
-        category: undefined,
-      });
-      await updateTransaction(values);
-      table.setEditingRow(null);
-    };
-
-  const columns = useMemo<MRT_ColumnDef<ent.Transaction>[]>(
-    () => [
+  const colDefs = useMemo<ColDef<ent.Transaction>[]>(() => (
+    [
       {
-        accessorKey: "id",
-        header: "ID",
-        enableColumnOrdering: false,
-        enableEditing: false,
-        enableSorting: false,
-        size: 50,
-        // hide: true, // no clue why this doesn't work so will have to do below
-        // hide header
-        muiTableHeadCellProps: {
-          style: {
-            display: "none",
-          },
+        cellRenderer: (props: any) => {
+          return <Box sx={{ display: "flex", gap: "1rem" }}>
+            <Tooltip title="Delete">
+              <IconButton
+                color="error"
+                onClick={() => {
+                  DeleteTransaction(props.data.id);
+                  props.api.applyTransaction({
+                    remove: [props.node.data]
+                  });
+                }}
+              >
+                <DeleteIcon />
+              </IconButton>
+            </Tooltip>
+            {type === "Expense" && (
+              <PopupState variant="popover" popupId="demo-popup-popover">
+                {(popupState) => (
+                  <div>
+                    <Button
+                      aria-describedby="reimburse-popover"
+                      {...bindTrigger(popupState)}
+                      onClick={() => {
+                        props.node.setSelected(true)
+                        popupState.open();
+                      }}
+                    >
+                      Reimburse
+                    </Button>
+                    <Draggable>
+                      <Popover
+                        {...bindPopover(popupState)}
+                        id="reimburse-popover"
+                        anchorOrigin={{
+                          vertical: "bottom",
+                          horizontal: "left",
+                        }}
+                        transformOrigin={{
+                          vertical: "top",
+                          horizontal: "left",
+                        }}
+                        onClose={() => {
+                          props.node.setSelected(false)
+                        }}
+                      >
+                        <div className='reimburse-popover'>
+                          <TransactionSearch
+                            type="Income"
+                            onSelect={(transaction) => {
+                              if (transaction) {
+                                props.data.reimbursed_by_id = transaction.id;
+                              } else {
+                                props.data.reimbursed_by_id = null;
+                              }
+                              // const reimbursedByTransaction =
+                              //   fetchedTransactions.find(
+                              //     (transaction) =>
+                              //       transaction.id === props.data.reimbursed_by_id
+                              //   );
+                              // if (reimbursedByTransaction) {
+                              //   reimbursedByTransaction.category_id = "🔁 Reimbursement";
+                              //   updateTransaction(reimbursedByTransaction);
+                              // }
+                              updateTransaction(props.data);
+                              filteredTransactions.forEach(
+                                (transactionItr, idx) => {
+                                  if (transactionItr.reimbursed_by_id === transaction.id && transactionItr.id !== props.data.id) {
+                                    console.log("found", transactionItr);
+                                    filteredTransactions[idx].reimbursed_by_id = undefined;
+                                    console.log("new", filteredTransactions[idx]);
+                                  }
+                                }
+                              );
+                              popupState.close();
+                              props.api.redrawRows();
+                            }}
+                          />
+                        </div>
+                      </Popover>
+                    </Draggable>
+                  </ div>
+                )}
+              </PopupState>
+            )}
+          </Box >
         },
-        // hide cell
-        muiTableBodyCellProps: {
-          style: {
-            display: "none",
-          },
-        },
+        suppressHeaderFilterButton: true,
+        suppressAutoSize: true,
+        editable: false,
+        minWidth: 200,
+        maxWidth: 200,
       },
       {
-        accessorKey: "date",
-        header: "Date",
-        type: "date",
-        format: "dd/MM/yyyy",
-        size: 100,
-        // date picker
-        muiEditTextFieldProps: {
-          required: true,
-          type: "date",
-          format: "dd/MM/yyyy",
-          error: !!validationErrors.date,
-          helperText: validationErrors.date,
-          //remove any previous validation errors when user focuses on the input
-          onFocus: () =>
-            dispatchValidationErrors({
-              date: undefined,
-            }),
-          // validate on change
-          onChange: handleDateChange,
-          onBlur: handleDateChange,
-        },
-
-        // display as DD/MM/YYYY
-        Cell: ({ cell }) => formatDate(cell.getValue() as string),
+        field: "time",
+        headerName: "Date",
+        sort: "desc",
+        cellEditor: "agDateCellEditor",
+        valueFormatter: params => formatDate(params.value),
+        valueParser: params => convertToUnixTimestamp("dd/mm/yyyy", params.newValue)
       },
       {
-        accessorKey: "description",
-        header: "Description",
-        size: 250,
-        muiEditTextFieldProps: {
-          required: true,
-          error: !!validationErrors.description,
-          helperText: validationErrors.description,
-          onFocus: () =>
-            dispatchValidationErrors({
-              description: undefined,
-            }),
-          onChange: handleDescriptionChange,
-          onBlur: handleDescriptionChange,
-        },
+        field: "description",
       },
       {
-        accessorKey: "amount",
-        header: "Amount",
-        size: 50,
-        muiEditTextFieldProps: {
-          type: "number",
-          format: "currency",
-          required: true,
-          error: !!validationErrors.amount,
-          helperText: validationErrors.amount,
-          onFocus: () =>
-            dispatchValidationErrors({
-              amount: undefined,
-            }),
-          onChange: handleAmountChange,
-          onBlur: handleAmountChange,
-        },
-        // format as currency
-        Cell: ({ cell }) => {
-          const transactionAmount = cell.getValue() as number;
+        field: "amount",
+        cellRenderer: (params: any) => useMemo(() => {
           const reimbursedTransaction = fetchedTransactions.find(
-            (transaction) => transaction.id === cell.row.original.reimbursed_by_id
+            (transaction) => transaction.id === params.data.reimbursed_by_id
           );
-
           if (reimbursedTransaction) {
-            const totalAmount = transactionAmount + Number(reimbursedTransaction.amount);
+            const totalAmount = params.value + Number(reimbursedTransaction.amount);
             return (
               <>
                 {formatCurrency(totalAmount)}{' '}
                 <span style={{ color: 'green' }}>
-                  ({formatCurrency(Number(reimbursedTransaction.amount))} Reimbursed)
+                  ({formatCurrency(Number(reimbursedTransaction.amount)) + " - " + reimbursedTransaction.description})
                 </span>
               </>
             );
           } else {
-            return formatCurrency(transactionAmount);
+            return formatCurrency(params.value);
           }
-        },
+        }, [fetchedTransactions]),
       },
       {
-        accessorKey: "edges.category.name",
-        header: "Category",
-        size: 50,
-        muiEditTextFieldProps: {
-          select: true,
-          required: true,
-          children: fetchedCategories.map((category) => (
-            <MenuItem key={category.name} value={category.name}>
-              {category.name}
-            </MenuItem>
-          )),
-          error: !!validationErrors.category,
-          helperText: validationErrors.category,
-          onFocus: () =>
-            dispatchValidationErrors({
-              category: undefined,
-            }),
-          // onChange: handleCategoryChange,
-          // onBlur: handleCategoryChange,
+        field: "category_id",
+        headerName: "Category",
+        cellStyle: { 'textAlign': "left" },
+        cellEditor: 'agSelectCellEditor',
+        cellEditorParams: {
+          values: categoryIds,
+          useFormatter: true
         },
-      },
-    ],
-    [validationErrors, fetchedCategories]
-  );
-
-  const table = useMaterialReactTable<ent.Transaction>({
-    columns,
-    data: filteredTransactions,
-    createDisplayMode: "row",
-    editDisplayMode: "row",
-    enableEditing: true,
-    enableBottomToolbar: true,
-    enableStickyFooter: true,
-    enableTopToolbar: true,
-    enableStickyHeader: true,
-    enablePagination: true,
-    onPaginationChange: setPagination,
-    memoMode: "cells",
-    // getRowId: (row) => row.id,
-    muiToolbarAlertBannerProps: isLoadingCategoriesError
-      ? {
-        color: "error",
-        children: "Error loading data",
+        valueFormatter: params => fetchedCategories.find(cat => cat.id === params.value)?.name || 'unknown',
+        valueParser: params => fetchedCategories.find(cat => cat.name === params.newValue)?.id
       }
-      : undefined,
-    muiTableContainerProps: {
-      sx: {
-        minHeight: "calc(100vh - 167px)",
-      },
-      style: {
-        maxHeight: "calc(100vh - 167px)",
-      },
-    },
-    onCreatingRowCancel: () =>
-      dispatchValidationErrors({
-        date: undefined,
-        description: undefined,
-        amount: undefined,
-        category: undefined,
-      }),
-    onCreatingRowSave: handleCreateTransaction,
-    onEditingRowCancel: () =>
-      dispatchValidationErrors({
-        date: undefined,
-        description: undefined,
-        amount: undefined,
-        category: undefined,
-      }),
-    onEditingRowSave: handleSaveTransaction,
-    renderEditRowDialogContent: useCallback<
-      Required<MRT_TableOptions<ent.Transaction>>["renderEditRowDialogContent"]
-    >(
-      ({ table, row, internalEditComponents }) => (
-        <>
-          <DialogTitle variant="h3">Edit Transaction</DialogTitle>
-          <DialogContent
-            sx={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}
-          >
-            {internalEditComponents}{" "}
-            {/* or render custom edit components here */}
-          </DialogContent>
-          <DialogActions>
-            <MRT_EditActionButtons variant="text" table={table} row={row} />
-          </DialogActions>
-        </>
-      ),
-      []
-    ),
-    renderRowActions: useCallback<
-      Required<MRT_TableOptions<ent.Transaction>>["renderRowActions"]
-    >(
-      ({ row, table }) => (
-        <Box sx={{ display: "flex", gap: "1rem" }}>
-          <Tooltip title="Edit">
-            <IconButton onClick={() => handleEditingRow(table, row)}>
-              <EditIcon />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Delete">
-            <IconButton
-              color="error"
-              onClick={() => openDeleteConfirmModal(row)}
-            >
-              <DeleteIcon />
-            </IconButton>
-          </Tooltip>
-          {type === "Expense" && (
-            <PopupState variant="popover" popupId="demo-popup-popover">
-              {(popupState) => (
-                <div>
-                  <Button
-                    aria-describedby="reimburse-popover"
-                    variant="contained"
-                    {...bindTrigger(popupState)}
-                  >
-                    Reimburse
-                  </Button>
-                  <Popover
-                    {...bindPopover(popupState)}
-                    id="reimburse-popover"
-                    anchorOrigin={{
-                      vertical: "bottom",
-                      horizontal: "left",
-                    }}
-                    transformOrigin={{
-                      vertical: "top",
-                      horizontal: "left",
-                    }}
-                  >
-                    <TransactionSearch
-                      type="Income"
-                      onSelect={(transaction) => {
-                        row.original.reimbursed_by_id = transaction.id;
-                        const reimbursedByTransaction =
-                          fetchedTransactions.find(
-                            (transaction) =>
-                              transaction.id === row.original.reimbursed_by_id
-                          );
-                        // if (reimbursedByTransaction) {
-                        //   reimbursedByTransaction.category_id = "🔁 Reimbursement";
-                        //   updateTransaction(reimbursedByTransaction);
-                        // }
-                        updateTransaction(row.original);
-                        popupState.close();
-                      }}
-                    />
-                  </Popover>
-                </div>
-              )}
-            </PopupState>
-          )}
-        </Box>
-      ),
-      []
-    ),
-    renderTopToolbarCustomActions: useCallback<
-      Required<
-        MRT_TableOptions<ent.Transaction>
-      >["renderTopToolbarCustomActions"]
-    >(
-      ({ table }) => (
-        <div className="table-top-toolbar-container">
-          <div onClick={() => handleCreatingRow(table)}>
-            <IconButton>
-              <AddIcon />
-            </IconButton>
-          </div>
-          <h2>{type}</h2>
-        </div>
-      ),
-      []
-    ),
-    state: {
-      isLoading: isLoadingTransactions || isLoadingCategories,
-      isSaving:
-        isCreatingTransaction || isUpdatingTransaction || isDeletingTransaction,
-      showAlertBanner: isLoadingTransactionsError || isLoadingCategoriesError,
-      showProgressBars: isFetchingTransactions || isFetchingCategories,
-      pagination,
-    },
-  });
+    ]), [categoryIds]);
 
-  return <MaterialReactTable table={table} />;
+  const defaultColDef = useMemo(() => ({
+    filter: true,
+    editable: true
+  }), []);
+
+  const gridRef = useRef<AgGridReact>(null);
+
+  const onGridReady = useCallback((event: any) => {
+    event.api.sizeColumnsToFit();
+  }, []);
+
+  const onGridSizeChanged = useCallback((event: any) => {
+    event.api.sizeColumnsToFit();
+  }, []);
+
+  const onCellValueChanged = useCallback((event: any) => {
+    console.log("onCellValueChanged")
+    updateTransaction(event.data as ent.Transaction);
+  }, []);
+
+  const getRowStyle = (params: any) => {
+    if (params.data.selected === true) {
+      return {
+        'background-color': '#455A64',
+        'color': '#9AA3A8'
+      }
+    }
+  };
+
+  return (
+    <div className="ag-theme-material-dark">
+      <AgGridReact
+        getRowStyle={getRowStyle}
+        ref={gridRef}
+        rowData={filteredTransactions}
+        columnDefs={colDefs}
+        defaultColDef={defaultColDef}
+        onGridReady={onGridReady}
+        onGridSizeChanged={onGridSizeChanged}
+        //onColumnResized={onGridSizeChanged}
+        onCellValueChanged={onCellValueChanged}
+      />
+    </div >
+  )
 };
 
 export default TransactionsTable;

@@ -26,8 +26,6 @@ const (
 	EdgeCategory = "category"
 	// EdgeReimbursedByTransaction holds the string denoting the reimbursed_by_transaction edge name in mutations.
 	EdgeReimbursedByTransaction = "reimbursed_by_transaction"
-	// EdgeReimburses holds the string denoting the reimburses edge name in mutations.
-	EdgeReimburses = "reimburses"
 	// Table holds the table name of the transaction in the database.
 	Table = "transactions"
 	// CategoryTable is the table that holds the category relation/edge.
@@ -40,11 +38,7 @@ const (
 	// ReimbursedByTransactionTable is the table that holds the reimbursed_by_transaction relation/edge.
 	ReimbursedByTransactionTable = "transactions"
 	// ReimbursedByTransactionColumn is the table column denoting the reimbursed_by_transaction relation/edge.
-	ReimbursedByTransactionColumn = "transaction_reimburses"
-	// ReimbursesTable is the table that holds the reimburses relation/edge.
-	ReimbursesTable = "transactions"
-	// ReimbursesColumn is the table column denoting the reimburses relation/edge.
-	ReimbursesColumn = "transaction_reimburses"
+	ReimbursedByTransactionColumn = "reimbursed_by_id"
 )
 
 // Columns holds all SQL columns for transaction fields.
@@ -57,21 +51,10 @@ var Columns = []string{
 	FieldReimbursedByID,
 }
 
-// ForeignKeys holds the SQL foreign-keys that are owned by the "transactions"
-// table and are not defined as standalone fields in the schema.
-var ForeignKeys = []string{
-	"transaction_reimburses",
-}
-
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
-			return true
-		}
-	}
-	for i := range ForeignKeys {
-		if column == ForeignKeys[i] {
 			return true
 		}
 	}
@@ -129,13 +112,6 @@ func ByReimbursedByTransactionField(field string, opts ...sql.OrderTermOption) O
 		sqlgraph.OrderByNeighborTerms(s, newReimbursedByTransactionStep(), sql.OrderByField(field, opts...))
 	}
 }
-
-// ByReimbursesField orders the results by reimburses field.
-func ByReimbursesField(field string, opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newReimbursesStep(), sql.OrderByField(field, opts...))
-	}
-}
 func newCategoryStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -147,13 +123,6 @@ func newReimbursedByTransactionStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(Table, FieldID),
-		sqlgraph.Edge(sqlgraph.O2O, true, ReimbursedByTransactionTable, ReimbursedByTransactionColumn),
-	)
-}
-func newReimbursesStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(Table, FieldID),
-		sqlgraph.Edge(sqlgraph.O2O, false, ReimbursesTable, ReimbursesColumn),
+		sqlgraph.Edge(sqlgraph.O2O, false, ReimbursedByTransactionTable, ReimbursedByTransactionColumn),
 	)
 }

@@ -9,11 +9,11 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import { useEffect, useState } from 'react';
 
+import { GetCategoriesByType, GetTransactions } from '../../../wailsjs/go/db/Db';
 import { ent } from "../../../wailsjs/go/models";
 import { formatCurrency, formatDate } from '../../Utils/Formatters';
 import { GetDefaultPeriod, TimePeriod } from '../Dashboard/Dashboard';
 import TimePeriodSelector from '../Selectors/TimePeriodSelector';
-import { GetCategoriesByType, GetTransactions } from '../../../wailsjs/go/db/Db';
 
 function getLastPeriod(periodStart: Date, periodEnd: Date, periodType: string): TimePeriod {
   switch (periodType) {
@@ -347,10 +347,10 @@ function Statistics() {
       setTransactionsAll(resp);
     });
     // get categories from db
-    GetCategoriesByType("income").then((resp: ent.Category[]) => {
+    GetCategoriesByType("Income").then((resp: ent.Category[]) => {
       setCategoriesIncome(resp);
     });
-    GetCategoriesByType("expense").then((resp: ent.Category[]) => {
+    GetCategoriesByType("Expense").then((resp: ent.Category[]) => {
       setCategoriesExpense(resp);
     });
   }, [timePeriod]);
