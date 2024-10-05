@@ -145,7 +145,6 @@ function useUpdateTransaction(type: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (transaction: ent.Transaction) => {
-      console.log(transaction)
       if (type === "Income") {
         transaction.amount = Math.abs(Number(transaction.amount));
       } else {
@@ -292,10 +291,13 @@ const TransactionsTable = ({ type }: { type: string }) => {
     fetchedCategories.map((category) => (category.id))
   ), [fetchedCategories]);
 
+  let inputRow = {}
+
   const colDefs = useMemo<ColDef<ent.Transaction>[]>(() => (
     [
       {
         cellRenderer: (props: any) => {
+          if (props.node.rowPinned == 'top') return
           return <Box sx={{ display: "flex", gap: "1rem" }}>
             <Tooltip title="Delete">
               <IconButton
@@ -362,9 +364,7 @@ const TransactionsTable = ({ type }: { type: string }) => {
                               filteredTransactions.forEach(
                                 (transactionItr, idx) => {
                                   if (transactionItr.reimbursed_by_id === transaction.id && transactionItr.id !== props.data.id) {
-                                    console.log("found", transactionItr);
                                     filteredTransactions[idx].reimbursed_by_id = undefined;
-                                    console.log("new", filteredTransactions[idx]);
                                   }
                                 }
                               );
@@ -392,15 +392,26 @@ const TransactionsTable = ({ type }: { type: string }) => {
         headerName: "Date",
         sort: "desc",
         cellEditor: "agDateCellEditor",
+        cellRenderer: (params: any) =>
+          isEmptyPinnedCell(params)
+            ? createPinnedCellPlaceholder(params)
+            : formatDate(params.value),
         valueFormatter: params => formatDate(params.value),
         valueParser: params => convertToUnixTimestamp("dd/mm/yyyy", params.newValue)
       },
       {
         field: "description",
+        cellRenderer: (params: any) =>
+          isEmptyPinnedCell(params)
+            ? createPinnedCellPlaceholder(params)
+            : params.value,
       },
       {
         field: "amount",
-        cellRenderer: (params: any) => useMemo(() => {
+        cellRenderer: (params: any) =>
+          isEmptyPinnedCell(params)
+            ? createPinnedCellPlaceholder(params)
+            : useMemo(() => {
           const reimbursedTransaction = fetchedTransactions.find(
             (transaction) => transaction.id === params.data.reimbursed_by_id
           );
@@ -428,10 +439,34 @@ const TransactionsTable = ({ type }: { type: string }) => {
           values: categoryIds,
           useFormatter: true
         },
+        cellRenderer: (params: any) =>
+          isEmptyPinnedCell(params)
+            ? 'Category...'
+            : fetchedCategories.find(cat => cat.id === params.value)?.name || 'unknown',
         valueFormatter: params => fetchedCategories.find(cat => cat.id === params.value)?.name || 'unknown',
         valueParser: params => fetchedCategories.find(cat => cat.name === params.newValue)?.id
       }
     ]), [categoryIds]);
+  
+  function isEmptyPinnedCell(params: any) {
+    return (
+      (params.node.rowPinned === 'top' && params.value == null) ||
+      (params.node.rowPinned === 'top' && params.value == '')
+    );
+  }
+
+  function createPinnedCellPlaceholder(params: any) {
+    return params.colDef.field[0].toUpperCase() + params.colDef.field.slice(1) + '...';
+  }
+
+  function isPinnedRowDataCompleted(params: any) {
+    if (params.rowPinned !== 'top') return;
+    if (!inputRow) return;
+    return colDefs.every((def) => {
+      if (!def.field) return true
+      return inputRow[def.field]
+    });
+  } 
 
   const defaultColDef = useMemo(() => ({
     filter: true,
@@ -449,9 +484,18 @@ const TransactionsTable = ({ type }: { type: string }) => {
   }, []);
 
   const onCellValueChanged = useCallback((event: any) => {
-    console.log("onCellValueChanged")
+    if (event.rowPinned == 'top') return;
     updateTransaction(event.data as ent.Transaction);
   }, []);
+
+  const onCellEditingStopped = (params: any) => {
+    if (isPinnedRowDataCompleted(params)) {
+      // add to fetchedCategories
+      createTransaction(params.data)
+      //reset pinned row
+      inputRow = {}
+    }
+  }
 
   const getRowStyle = (params: any) => {
     if (params.data.selected === true) {
@@ -465,6 +509,8 @@ const TransactionsTable = ({ type }: { type: string }) => {
   return (
     <div className="ag-theme-material-dark">
       <AgGridReact
+        pinnedTopRowData={[inputRow]}
+        onCellEditingStopped={onCellEditingStopped}
         getRowStyle={getRowStyle}
         ref={gridRef}
         rowData={filteredTransactions}

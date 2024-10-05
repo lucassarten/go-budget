@@ -2,34 +2,19 @@
 /* eslint-disable promise/catch-or-return */
 /* eslint-disable no-nested-ternary */
 /* eslint-disable camelcase */
-import AddIcon from '@mui/icons-material/Add';
-import DeleteIcon from '@mui/icons-material/Delete';
-import EditIcon from '@mui/icons-material/Edit';
-import {
-  Box,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  IconButton,
-  Tooltip,
-} from '@mui/material';
 import {
   useMutation,
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
+import "ag-grid-community/styles/ag-grid.css";
+import "ag-grid-community/styles/ag-theme-material.css";
 import debounce from 'lodash.debounce';
-import {
-  MRT_EditActionButtons,
-  MaterialReactTable,
-  createRow,
-  useMaterialReactTable,
-  type MRT_ColumnDef,
-  type MRT_Row,
-  type MRT_TableOptions,
-} from 'material-react-table';
-import { useCallback, useMemo, useReducer } from 'react';
 
+import { ColDef } from "ag-grid-community";
+import { AgGridReact } from 'ag-grid-react';
+
+import { useCallback, useMemo, useReducer, useRef } from 'react';
 import { CreateCategory, DeleteCategory, GetCategoriesByType, GetCategoryByID, UpdateCategory } from "../../../wailsjs/go/db/Db.js";
 import { ent } from "../../../wailsjs/go/models.js";
 
@@ -211,277 +196,119 @@ const CategoryTable = ({ type }: { type: string }) => {
   const { mutateAsync: updateCategory, isPending: isUpdatingCategory } = useUpdateCategory(type);
   const { mutateAsync: deleteCategory, isPending: isDeletingCategory } = useDeleteCategory(type);
 
-  // actions
-  const handleCreateCategory: MRT_TableOptions<ent.Category>['onCreatingRowSave'] = async ({
-    values,
-    table,
-  }: {
-    values: ent.Category;
-    table: any;
-  }) => {
-    const newValidationErrors = validateCategory(values);
-    if (Object.values(newValidationErrors).some((error) => error)) {
-      dispatchValidationErrors(newValidationErrors);
-      return;
-    }
-    dispatchValidationErrors({
-      name: undefined,
-      weeklyBudget: undefined,
-      monthlyBudget: undefined,
-      colour: undefined,
-    });
-    await createCategory(values);
-    table.setCreatingRow(false);
-  }
+  let inputRow = {}
 
-  const handleCreatingRow = (table: any) => {
-    table.setCreatingRow(true);
-    dispatchValidationErrors({
-      name: undefined,
-      weeklyBudget: undefined,
-      monthlyBudget: undefined,
-      colour: undefined,
-    });
-    table.setCreatingRow(
-      createRow(table, {
-        name: '',
-        weeklyBudget: 0,
-        monthlyBudget: 0,
-        colour: '#' + Math.floor(Math.random() * 16777215).toString(16),
-      }),
-    );
-    // scroll to top of table
-    document.querySelector('.MuiTableContainer-root')?.scrollTo({
-      top: 0,
-      behavior: 'smooth',
-    });
-  }
-
-  const handleEditingRow = (table: any, row: MRT_Row<ent.Category>) => {
-    dispatchValidationErrors({
-      name: undefined,
-      weeklyBudget: undefined,
-      monthlyBudget: undefined,
-      colour: undefined,
-    });
-    table.setEditingRow(row);
-  }
-
-  const openDeleteConfirmModal = (row: MRT_Row<ent.Category>) => {
-    if (window.confirm('Are you sure you want to delete this Category?')) {
-      deleteCategory(Number(row.original.id));
-    }
-  };
-
-  const handleSaveCategory: MRT_TableOptions<ent.Category>['onEditingRowSave'] = async ({
-    values,
-    table,
-  }: {
-    values: ent.Category;
-    table: any;
-  }) => {
-    const newValidationErrors = validateCategory(values);
-    if (Object.values(newValidationErrors).some((error) => error)) {
-      dispatchValidationErrors(newValidationErrors);
-      return;
-    }
-    dispatchValidationErrors({
-      name: undefined,
-      weeklyBudget: undefined,
-      monthlyBudget: undefined,
-      colour: undefined,
-    });
-    await updateCategory(values);
-    table.setEditingRow(null);
-  };
-
-  const columns = useMemo<MRT_ColumnDef<ent.Category>[]>(
-    () => [
+  const colDefs = useMemo<ColDef<ent.Category>[]>(() => (
+    [
       {
-        accessorKey: 'name',
-        header: 'Name',
-        size: 100,
-        muiEditTextFieldProps: {
-          required: true,
-          error: !!validationErrors?.name,
-          helperText: validationErrors?.name,
-          //remove any previous validation errors when user focuses on the input
-          onFocus: () =>
-            dispatchValidationErrors({
-              name: undefined,
-            }),
-          // validate on change
-          onChange: handleNameChange,
-          onBlur: handleNameChange,
-        },
+        field: "name",
+        headerName: "Name",
+        cellStyle: { 'textAlign': "left" },
+        sort: "desc",
+        cellRenderer: (params: any) =>
+          isEmptyPinnedCell(params)
+            ? createPinnedCellPlaceholder(params)
+            : params.value,
+      }, 
+      {
+        field: "weekly",
+        headerName: "Weekly Budget",
+        cellRenderer: (params: any) =>
+          isEmptyPinnedCell(params)
+            ? createPinnedCellPlaceholder(params)
+            : formatCurrency(params.value)
       },
       {
-        accessorKey: 'weekly',
-        header: 'Weekly Budget',
-        size: 50,
-        Cell: ({ cell }) => formatCurrency(cell.getValue() as number),
-        muiEditTextFieldProps: {
-          required: true,
-          error: !!validationErrors?.weeklyBudget,
-          helperText: validationErrors?.weeklyBudget,
-          onFocus: () =>
-            dispatchValidationErrors({
-              weeklyBudget: undefined
-            }),
-          onChange: handleTargetChange,
-          onBlur: handleTargetChange,
-          name: 'weeklyBudget',
-        },
+        field: "monthly",
+        headerName: "Monthly Budget",
+        cellRenderer: (params: any) =>
+          isEmptyPinnedCell(params)
+            ? createPinnedCellPlaceholder(params)
+            : formatCurrency(params.value)
       },
       {
-        accessorKey: 'monthly',
-        header: 'Monthly Budget',
-        size: 50,
-        Cell: ({ cell }) => formatCurrency(cell.getValue() as number),
-        muiEditTextFieldProps: {
-          required: true,
-          error: !!validationErrors?.monthlyBudget,
-          helperText: validationErrors?.monthlyBudget,
-          onFocus: () =>
-            dispatchValidationErrors({
-              monthlyBudget: undefined
-            }),
-          onChange: handleTargetChange,
-          onBlur: handleTargetChange,
-          name: 'monthlyBudget',
-        },
-      },
-      {
-        accessorKey: 'colour',
-        header: 'Colour',
-        size: 50,
-        // Set cell background colour to cell value
-        Cell: ({ cell }) => (
-          <div
+        field: "colour",
+        headerName: "Colour",
+        cellRenderer: (params: any) =>
+          isEmptyPinnedCell(params)
+            ? createPinnedCellPlaceholder(params)
+            : <div
             style={{
-              backgroundColor: String(cell.getValue()),
+              backgroundColor: String(params.value),
               width: '100%',
-              height: '100%',
+              height: '100%'
             }}
           >
-            {cell.getValue() as React.ReactNode}
+            {params.value as React.ReactNode}
           </div>
-        ),
-        muiEditTextFieldProps: {
-          required: true,
-          error: !!validationErrors?.colour,
-          helperText: validationErrors?.colour,
-          // remove any previous validation errors when user focuses on the input
-          onFocus: () =>
-            dispatchValidationErrors({
-              colour: undefined,
-            }),
-          // validate on change
-          onChange: handleColourChange,
-          onBlur: handleColourChange,
-        },
-      },
-    ],
-    [validationErrors],
-  );
-
-  const table = useMaterialReactTable<ent.Category>({
-    columns,
-    data: fetchedCategories,
-    createDisplayMode: 'row',
-    editDisplayMode: 'row',
-    enableEditing: true,
-    enableBottomToolbar: false,
-    enableStickyHeader: true,
-    enablePagination: false,
-    memoMode: 'cells',
-    // getRowId: (row) => row.id,
-    muiToolbarAlertBannerProps: isLoadingCategoriesError
-      ? {
-        color: 'error',
-        children: 'Error loading data',
       }
-      : undefined,
-    muiTableContainerProps: {
-      sx: {
-        minHeight: 'calc(100vh - 121px)',
-      },
-      style: {
-        maxHeight: 'calc(100vh - 121px)',
-      }
-    },
-    onCreatingRowCancel: () => dispatchValidationErrors({
-      name: undefined,
-      weeklyBudget: undefined,
-      monthlyBudget: undefined,
-      colour: undefined,
-    }),
-    onCreatingRowSave: handleCreateCategory,
-    onEditingRowCancel: () => dispatchValidationErrors({
-      name: undefined,
-      weeklyBudget: undefined,
-      monthlyBudget: undefined,
-      colour: undefined,
-    }),
-    onEditingRowSave: handleSaveCategory,
-    renderEditRowDialogContent: useCallback<
-      Required<MRT_TableOptions<ent.Category>>['renderEditRowDialogContent']
-    >(
-      ({ table, row, internalEditComponents }) =>
-        <>
-          <DialogTitle variant="h3">Edit Category</DialogTitle>
-          <DialogContent
-            sx={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}
-          >
-            {internalEditComponents} {/* or render custom edit components here */}
-          </DialogContent>
-          <DialogActions>
-            <MRT_EditActionButtons variant="text" table={table} row={row} />
-          </DialogActions>
-        </>,
-      [],
-    ),
-    renderRowActions: useCallback<
-      Required<MRT_TableOptions<ent.Category>>['renderRowActions']
-    >(
-      ({ row, table }) =>
-        <Box sx={{ display: 'flex', gap: '1rem' }}>
-          <Tooltip title="Edit">
-            <IconButton onClick={() => handleEditingRow(table, row)}>
-              <EditIcon />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Delete">
-            <IconButton color="error" onClick={() => openDeleteConfirmModal(row)}>
-              <DeleteIcon />
-            </IconButton>
-          </Tooltip>
-        </Box>,
-      [],
-    ),
-    renderTopToolbarCustomActions: useCallback<
-      Required<MRT_TableOptions<ent.Category>>['renderTopToolbarCustomActions']
-    >(
-      ({ table }) =>
-        <div className="table-top-toolbar-container">
-          <div onClick={() => handleCreatingRow(table)}>
-            <IconButton>
-              <AddIcon />
-            </IconButton>
-          </div>
-          <h2>{type}</h2>
-        </div>,
-      [],
-    ),
-    state: {
-      isLoading: isLoadingCategories,
-      isSaving: isCreatingCategory || isUpdatingCategory || isDeletingCategory,
-      showAlertBanner: isLoadingCategoriesError,
-      showProgressBars: isFetchingCategories,
-    },
-  });
+    ]), []);
+  
+  function isEmptyPinnedCell(params: any) {
+    return (
+      (params.node.rowPinned === 'top' && params.value == null) ||
+      (params.node.rowPinned === 'top' && params.value == '')
+    );
+  }
 
-  return <MaterialReactTable table={table} />;
+  function createPinnedCellPlaceholder(params: any) {
+    return params.colDef.field[0].toUpperCase() + params.colDef.field.slice(1) + '...';
+  }
+
+  function isPinnedRowDataCompleted(params: any) {
+    if (params.rowPinned !== 'top') return;
+    if (!inputRow) return;
+    return colDefs.every((def) => {
+      if (!def.field) return true
+      return inputRow[def.field]
+    });
+  } 
+
+  const defaultColDef = useMemo(() => ({
+    filter: true,
+    editable: true,
+  }), []);
+
+  const gridRef = useRef<AgGridReact>(null);
+
+  const onGridReady = useCallback((event: any) => {
+    event.api.sizeColumnsToFit();
+  }, []);
+
+  const onGridSizeChanged = useCallback((event: any) => {
+    event.api.sizeColumnsToFit();
+  }, []);
+
+  const onCellValueChanged = useCallback((event: any) => {
+    if (event.rowPinned == 'top') return;
+    updateCategory(event.data as ent.Transaction);
+  }, []);
+
+  const onCellEditingStopped = (params: any) => {
+    if (isPinnedRowDataCompleted(params)) {
+      // add to fetchedCategories
+      createCategory(params.data)
+      //reset pinned row
+      inputRow = {}
+    } 
+  }
+
+  return (
+    <div className="ag-theme-material-dark">
+      <AgGridReact
+        pinnedTopRowData={[inputRow]}
+        onCellEditingStopped={onCellEditingStopped}
+        ref={gridRef}
+        rowData={fetchedCategories}
+        columnDefs={colDefs}
+        defaultColDef={defaultColDef}
+        onGridReady={onGridReady}
+        onGridSizeChanged={onGridSizeChanged}
+        //onColumnResized={onGridSizeChanged}
+        onCellValueChanged={onCellValueChanged}
+      />
+    </div >
+  )
 }
 
 export default CategoryTable;
