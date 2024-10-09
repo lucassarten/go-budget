@@ -4,18 +4,8 @@
 /* eslint-disable camelcase */
 import DeleteIcon from '@mui/icons-material/Delete';
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getUnixTime, parse } from 'date-fns';
 import debounce from "lodash.debounce";
 import Draggable from "react-draggable";
-// import {
-//   MRT_EditActionButtons,
-//   MaterialReactTable,
-//   createRow,
-//   useMaterialReactTable,
-//   type MRT_ColumnDef,
-//   type MRT_Row,
-//   type MRT_TableOptions,
-// } from "material-react-table";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-material.css";
 
@@ -35,59 +25,8 @@ import {
 import { ent } from "../../../wailsjs/go/models";
 import TransactionSearch from '../TransactionSearch/TransactionSearch';
 
-// validation functions
-
-const unixToDate = (timestamp: number) => new Date(timestamp * 1000);
-const dateToUnix = (date: { getTime: () => number; }) => Math.floor(date.getTime() / 1000);
-
-const formatCurrency = (value: number) => {
-  const formatter = new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "NZD",
-    currencyDisplay: "symbol",
-  });
-  return formatter.format(value);
-};
-
-const formatDate = (value: number) => {
-  const date = new Date(value);
-  return date.toLocaleDateString("en-NZ", {
-    day: "numeric",
-    month: "numeric",
-    year: "numeric",
-  });
-};
-
-const convertToUnixTimestamp = (pattern: string, dateStr: string) => {
-  const parsedDate = parse(dateStr, pattern, new Date());
-  return getUnixTime(parsedDate);
-}
-
-const validateRequired = (value: string) => !!value.length;
-
-const validateDate = (value: number) => {
-  const date = new Date(value);
-  return !Number.isNaN(date.getTime());
-};
-
-const validateAmount = (value: string) => {
-  const number = Number(value);
-  return !Number.isNaN(number);
-};
-
-const validateTransaction = (transaction: ent.Transaction) => {
-  return {
-    date: validateDate(Number(transaction.time))
-      ? undefined
-      : "Date must be a valid date",
-    description: validateRequired(String(transaction.description))
-      ? undefined
-      : "Description is required",
-    amount: validateAmount(Number(transaction.amount).toString())
-      ? undefined
-      : "Amount must be a number >0",
-  };
-};
+import { isRowDataCompleted, createPinnedCellPlaceholder, isEmptyPinnedCell, validateDate, validateAmount, validateRequired } from '../../Utils/TableHelpers'
+import { convertToUnixTimestamp, formatDate, formatCurrency } from  '../../Utils/Formatters'
 
 // database management functions
 
@@ -195,72 +134,7 @@ function useDeleteTransaction() {
   });
 }
 
-type ValidationErrors = {
-  date?: string;
-  description?: string;
-  amount?: string;
-  category?: string;
-};
-
-type ValidationAction = Partial<ValidationErrors>;
-
 const TransactionsTable = ({ type }: { type: string }) => {
-  const [validationErrors, dispatchValidationErrors] = useReducer(
-    (state: ValidationErrors, action: ValidationAction) => ({
-      ...state,
-      ...action,
-    }),
-    {}
-  );
-  const [pagination, setPagination] = useState({
-    pageIndex: 0,
-    pageSize: 20,
-  });
-  // validation handlers
-
-  const handleDateChange = debounce(
-    useCallback(
-      (event: { target: { value: string } }) => {
-        const time = convertToUnixTimestamp("yyyy-MM-dd", event.target.value)
-        const isValid = validateDate(time);
-
-        dispatchValidationErrors({
-          date: isValid ? undefined : "Date must be a valid date",
-        });
-      },
-      [validateDate]
-    ),
-    500
-  );
-
-  const handleDescriptionChange = debounce(
-    useCallback(
-      (event: { target: { value: string } }) => {
-        const isValid = validateRequired(event.target.value);
-
-        dispatchValidationErrors({
-          description: isValid ? undefined : "Description is required",
-        });
-      },
-      [validateRequired]
-    ),
-    500
-  );
-
-  const handleAmountChange = debounce(
-    useCallback(
-      (event: { target: { value: string } }) => {
-        const isValid = validateAmount(event.target.value);
-
-        dispatchValidationErrors({
-          amount: isValid ? undefined : "Amount must be a number >0",
-        });
-      },
-      [validateAmount]
-    ),
-    500
-  );
-
   // hooks
   const {
     data: fetchedTransactions = [],
@@ -291,7 +165,7 @@ const TransactionsTable = ({ type }: { type: string }) => {
     fetchedCategories.map((category) => (category.id))
   ), [fetchedCategories]);
 
-  let inputRow = {}
+  let inputRow = new ent.Transaction
 
   const colDefs = useMemo<ColDef<ent.Transaction>[]>(() => (
     [
@@ -303,7 +177,7 @@ const TransactionsTable = ({ type }: { type: string }) => {
               <IconButton
                 color="error"
                 onClick={() => {
-                  DeleteTransaction(props.data.id);
+                  deleteTransaction(props.data.id);
                   props.api.applyTransaction({
                     remove: [props.node.data]
                   });
@@ -447,26 +321,6 @@ const TransactionsTable = ({ type }: { type: string }) => {
         valueParser: params => fetchedCategories.find(cat => cat.name === params.newValue)?.id
       }
     ]), [categoryIds]);
-  
-  function isEmptyPinnedCell(params: any) {
-    return (
-      (params.node.rowPinned === 'top' && params.value == null) ||
-      (params.node.rowPinned === 'top' && params.value == '')
-    );
-  }
-
-  function createPinnedCellPlaceholder(params: any) {
-    return params.colDef.field[0].toUpperCase() + params.colDef.field.slice(1) + '...';
-  }
-
-  function isPinnedRowDataCompleted(params: any) {
-    if (params.rowPinned !== 'top') return;
-    if (!inputRow) return;
-    return colDefs.every((def) => {
-      if (!def.field) return true
-      return inputRow[def.field]
-    });
-  } 
 
   const defaultColDef = useMemo(() => ({
     filter: true,
@@ -489,11 +343,11 @@ const TransactionsTable = ({ type }: { type: string }) => {
   }, []);
 
   const onCellEditingStopped = (params: any) => {
-    if (isPinnedRowDataCompleted(params)) {
+    if (params.rowPinned == 'top' && isRowDataCompleted(colDefs, inputRow)) {
       // add to fetchedCategories
       createTransaction(params.data)
       //reset pinned row
-      inputRow = {}
+      inputRow = new ent.Transaction
     }
   }
 

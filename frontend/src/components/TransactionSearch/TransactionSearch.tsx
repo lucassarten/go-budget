@@ -12,26 +12,7 @@ import "ag-grid-community/styles/ag-theme-material.css";
 import { AgGridReact } from "ag-grid-react";
 import { GetCategoriesByType, GetTransactions } from "../../../wailsjs/go/db/Db";
 import { ent } from "../../../wailsjs/go/models";
-
-// validation functions
-
-const formatCurrency = (value: number) => {
-  const formatter = new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "NZD",
-    currencyDisplay: "symbol",
-  });
-  return formatter.format(value);
-};
-
-const formatDate = (value: string) => {
-  const date = new Date(value);
-  return date.toLocaleDateString("en-NZ", {
-    day: "numeric",
-    month: "numeric",
-    year: "numeric",
-  });
-};
+import { formatCurrency, formatDate } from "../../Utils/Formatters";
 
 function useGetTransactions(type: string) {
   return useQuery<ent.Transaction[]>({
@@ -60,10 +41,6 @@ const TransactionSearch = ({
   type: string;
   onSelect: (transaction: ent.Transaction) => void;
 }) => {
-  const [pagination, setPagination] = useState({
-    pageIndex: 0,
-    pageSize: 20,
-  });
   const [reimbursedOnly, setReimbursedOnly] = useState(true)
   // hooks
   const {
@@ -84,10 +61,6 @@ const TransactionSearch = ({
       ? fetchedTransactions.filter((transaction) => Number(transaction.amount) > 0)
       : fetchedTransactions.filter((transaction) => Number(transaction.amount) < 0);
   }, [type, fetchedTransactions]);
-
-  // filteredTransactions.forEach(transaction => {
-  //   console.log(transaction);
-  // })
 
   const nonReimbursedTransactions = useMemo(() => {
     return filteredTransactions.filter((transaction) =>

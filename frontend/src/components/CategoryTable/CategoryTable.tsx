@@ -19,42 +19,8 @@ import { CreateCategory, DeleteCategory, GetCategoriesByType, GetCategoryByID, U
 import { ent } from "../../../wailsjs/go/models.js";
 
 import './CategoryTable.css';
-
-// validation functions
-
-const validateRequired = (value: string) => !!value.length;
-
-const formatCurrency = (value: number) => {
-  const formatter = new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'NZD',
-    currencyDisplay: 'symbol',
-  });
-  return formatter.format(value);
-};
-
-const validateAmount = (value: string) => {
-  const number = Number(value);
-  return !Number.isNaN(number) && number >= 0;
-};
-
-const validateColour = (value: string) => {
-  const regex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
-  return regex.test(value);
-}
-
-function validateCategory(category: ent.Category) {
-  return {
-    name: !validateRequired(String(category.name)) ? 'Name is required' : '',
-    monthly: !validateAmount(String(category.monthly))
-      ? 'Target must be a positive number'
-      : '',
-    weekly: !validateAmount(String(category.weekly))
-      ? 'Target must be a positive number'
-      : '',
-    colour: !validateColour(String(category.colour)) ? 'Colour must be a valid hex code' : '',
-  };
-}
+import { isRowDataCompleted, createPinnedCellPlaceholder, isEmptyPinnedCell, validatePositiveAmount, validateRequired, validateColour } from '../../Utils/TableHelpers'
+import { formatCurrency } from '../../Utils/Formatters'
 
 // database management functions
 
@@ -142,49 +108,7 @@ function useDeleteCategory(type: string) {
   });
 }
 
-type ValidationErrors = {
-  name?: string;
-  weeklyBudget?: string;
-  monthlyBudget?: string;
-  colour?: string;
-};
-
-type ValidationAction = Partial<ValidationErrors>;
-
 const CategoryTable = ({ type }: { type: string }) => {
-  const [validationErrors, dispatchValidationErrors] = useReducer(
-    (state: ValidationErrors, action: ValidationAction) => ({ ...state, ...action }),
-    {}
-  );
-
-  // validation handlers
-
-  const handleNameChange = debounce(useCallback((event: { target: { value: string; }; }) => {
-    const isValid = validateRequired(event.target.value);
-
-    dispatchValidationErrors({
-      name: isValid ? undefined : 'Name is required',
-    });
-  }, [validateRequired]), 500);
-
-  const handleTargetChange = debounce(useCallback((event: { target: { value: string; }; }) => {
-    const isValid = validateAmount(event.target.value);
-
-    dispatchValidationErrors({
-      weeklyBudget: isValid ? undefined : 'Target must be a positive number',
-      monthlyBudget: isValid ? undefined : 'Target must be a positive number',
-    });
-  }, [validateAmount]), 500);
-
-  const handleColourChange = debounce(useCallback((event: { target: { value: string; }; }) => {
-    const isValid = validateColour(event.target.value);
-
-    dispatchValidationErrors({
-      colour: isValid ? undefined : 'Colour must be a valid hex code',
-    });
-  }, [validateColour]), 500);
-
-
   // hooks
   const {
     data: fetchedCategories = [],
@@ -196,7 +120,7 @@ const CategoryTable = ({ type }: { type: string }) => {
   const { mutateAsync: updateCategory, isPending: isUpdatingCategory } = useUpdateCategory(type);
   const { mutateAsync: deleteCategory, isPending: isDeletingCategory } = useDeleteCategory(type);
 
-  let inputRow = {}
+  let inputRow = new ent.Transaction
 
   const colDefs = useMemo<ColDef<ent.Category>[]>(() => (
     [
@@ -243,26 +167,6 @@ const CategoryTable = ({ type }: { type: string }) => {
           </div>
       }
     ]), []);
-  
-  function isEmptyPinnedCell(params: any) {
-    return (
-      (params.node.rowPinned === 'top' && params.value == null) ||
-      (params.node.rowPinned === 'top' && params.value == '')
-    );
-  }
-
-  function createPinnedCellPlaceholder(params: any) {
-    return params.colDef.field[0].toUpperCase() + params.colDef.field.slice(1) + '...';
-  }
-
-  function isPinnedRowDataCompleted(params: any) {
-    if (params.rowPinned !== 'top') return;
-    if (!inputRow) return;
-    return colDefs.every((def) => {
-      if (!def.field) return true
-      return inputRow[def.field]
-    });
-  } 
 
   const defaultColDef = useMemo(() => ({
     filter: true,
@@ -285,11 +189,11 @@ const CategoryTable = ({ type }: { type: string }) => {
   }, []);
 
   const onCellEditingStopped = (params: any) => {
-    if (isPinnedRowDataCompleted(params)) {
+    if (params.rowPinned == 'top' && isRowDataCompleted(colDefs, inputRow)) {
       // add to fetchedCategories
       createCategory(params.data)
       //reset pinned row
-      inputRow = {}
+      inputRow = new ent.Transaction
     } 
   }
 
