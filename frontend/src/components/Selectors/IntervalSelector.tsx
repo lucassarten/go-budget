@@ -7,41 +7,41 @@ import {
 } from '@mui/material';
 import { useState } from 'react';
 
-import { TimePeriod } from '../Dashboard/Dashboard';
+import { IntervalValue, TimeInterval } from '../../Utils/Types';
 
 interface IntervalSelectorProps {
   // eslint-disable-next-line no-unused-vars
-  onIntervalChange: (timePeriod: TimePeriod) => void;
+  onIntervalChange: (timePeriod: TimeInterval) => void;
   // eslint-disable-next-line no-unused-vars
 }
 
 function IntervalSelector({ onIntervalChange }: IntervalSelectorProps) {
-  const [selectedOption, setSelectedOption] = useState('week');
+  const [selectedOption, setSelectedOption] = useState(IntervalValue.Week);
 
-  const handleOptionChange = (event: SelectChangeEvent<string>) => {
-    setSelectedOption(event.target.value);
+  const handleOptionChange = (event: SelectChangeEvent<IntervalValue>) => {
+    setSelectedOption(event.target.value as IntervalValue);
     let startDateCalc, endDateCalc;
 
-    switch (event.target.value) {
-      case 'day':
+    switch (event.target.value as IntervalValue) {
+      case IntervalValue.Day:
         endDateCalc = new Date();
         startDateCalc = new Date();
         startDateCalc.setDate(startDateCalc.getDate() - 1);
         break;
-      case 'week':
+      case IntervalValue.Week:
         startDateCalc = new Date();
         startDateCalc.setDate(startDateCalc.getDate() - startDateCalc.getDay() + 1);
         endDateCalc = new Date(startDateCalc);
         endDateCalc.setDate(endDateCalc.getDate() + 6);
         break;
-      case 'month':
+      case IntervalValue.Month:
         startDateCalc = new Date();
         startDateCalc.setDate(1);
         endDateCalc = new Date(startDateCalc);
         endDateCalc.setMonth(endDateCalc.getMonth() + 1);
         endDateCalc.setDate(endDateCalc.getDate() - 1);
         break;
-      case 'year':
+      case IntervalValue.Year:
         startDateCalc = new Date();
         startDateCalc.setMonth(0);
         startDateCalc.setDate(1);
@@ -62,7 +62,7 @@ function IntervalSelector({ onIntervalChange }: IntervalSelectorProps) {
     onIntervalChange({
       startDate: startDateCalc,
       endDate: endDateCalc,
-      period: event.target.value,
+      interval: event.target.value as IntervalValue,
     });
   };
 
@@ -77,10 +77,11 @@ function IntervalSelector({ onIntervalChange }: IntervalSelectorProps) {
         value={selectedOption}
         onChange={handleOptionChange}
       >
-        <MenuItem value="day">Day</MenuItem>
-        <MenuItem value="week">Week</MenuItem>
-        <MenuItem value="month">Month</MenuItem>
-        <MenuItem value="year">Year</MenuItem>
+        {Object.values(IntervalValue).map((interval) => (
+          <MenuItem key={interval} value={interval}>
+            {interval}
+          </MenuItem>
+        ))}
       </Select>
     </FormControl>
   );

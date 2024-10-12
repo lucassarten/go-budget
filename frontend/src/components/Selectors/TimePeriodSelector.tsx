@@ -3,52 +3,43 @@ import {
   InputLabel,
   MenuItem,
   Select,
-  SelectChangeEvent,
-  TextField,
+  SelectChangeEvent
 } from '@mui/material';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
-import { TimePeriod } from '../Dashboard/Dashboard';
 import { DateField } from '@mui/x-date-pickers';
+import { PeriodValue, TimePeriod } from '../../Utils/Types';
 
 interface TimePeriodSelectorProps {
-  // eslint-disable-next-line no-unused-vars
   onTimePeriodChange: (timePeriod: TimePeriod) => void;
 }
 
-const validateDate = (value: Date) => {
-  try {
-    value.toISOString();
-    return true;
-  } catch (e) {
-    return false;
-  }
-};
-
 function TimePeriodSelector({ onTimePeriodChange }: TimePeriodSelectorProps) {
-  const [selectedOption, setSelectedOption] = useState('all');
+  const [selectedOption, setSelectedOption] = useState(PeriodValue.All);
   const [startDate, setStartDate] = useState<Date>(new Date(0));
   const [endDate, setEndDate] = useState<Date>(new Date());
 
-  const handleOptionChange = (event: SelectChangeEvent<string>) => {
-    setSelectedOption(event.target.value);
+  const handleOptionChange = (event: SelectChangeEvent<PeriodValue>) => {
+    setSelectedOption(event.target.value as PeriodValue);
     let startDateCalc, endDateCalc;
 
-    switch (event.target.value) {
-      case 'lastWeek':
+    console.log(startDate, endDate);
+
+    switch (event.target.value as PeriodValue) {
+      case PeriodValue.LastWeek:
         startDateCalc = new Date();
         startDateCalc.setDate(startDateCalc.getDate() - startDateCalc.getDay() + 1);
         endDateCalc = new Date(startDateCalc);
         endDateCalc.setDate(endDateCalc.getDate() + 6);
         break;
-      case 'lastMonth':
+      case PeriodValue.LastMonth:
         startDateCalc = new Date();
         startDateCalc.setDate(1);
         endDateCalc = new Date(startDateCalc);
         endDateCalc.setMonth(endDateCalc.getMonth() + 1);
         endDateCalc.setDate(endDateCalc.getDate() - 1);
         break;
-      case 'lastThreeMonths':
+      case PeriodValue.LastThreeMonths:
         startDateCalc = new Date();
         startDateCalc.setDate(1);
         startDateCalc.setMonth(startDateCalc.getMonth() - 2);
@@ -56,7 +47,7 @@ function TimePeriodSelector({ onTimePeriodChange }: TimePeriodSelectorProps) {
         endDateCalc.setMonth(endDateCalc.getMonth() + 3);
         endDateCalc.setDate(endDateCalc.getDate() - 1);
         break;
-      case 'lastSixMonths':
+      case PeriodValue.LastSixMonths:
         startDateCalc = new Date();
         startDateCalc.setDate(1);
         startDateCalc.setMonth(startDateCalc.getMonth() - 5);
@@ -64,7 +55,7 @@ function TimePeriodSelector({ onTimePeriodChange }: TimePeriodSelectorProps) {
         endDateCalc.setMonth(endDateCalc.getMonth() + 6);
         endDateCalc.setDate(endDateCalc.getDate() - 1);
         break;
-      case 'lastYear':
+      case PeriodValue.LastYear:
         startDateCalc = new Date();
         startDateCalc.setMonth(0);
         startDateCalc.setDate(1);
@@ -72,11 +63,12 @@ function TimePeriodSelector({ onTimePeriodChange }: TimePeriodSelectorProps) {
         endDateCalc.setFullYear(endDateCalc.getFullYear() + 1);
         endDateCalc.setDate(endDateCalc.getDate() - 1);
         break;
-      case 'all':
+      case PeriodValue.All:
         startDateCalc = new Date(0);
         endDateCalc = new Date();
         break;
-      case 'custom':
+      case PeriodValue.Custom:
+        console.log('custom');
         startDateCalc = startDate;
         endDateCalc = endDate;
         break;
@@ -97,25 +89,19 @@ function TimePeriodSelector({ onTimePeriodChange }: TimePeriodSelectorProps) {
     onTimePeriodChange({
       startDate: startDateCalc,
       endDate: endDateCalc,
-      period: event.target.value,
+      period: event.target.value as PeriodValue,
     });
   };
 
   const handleStartDateChange = (date: Date | null) => {
     if (date != null) {
       setStartDate(date);
-      handleOptionChange({
-        target: { value: 'custom' },
-      } as SelectChangeEvent<string>);
     }
   };
 
   const handleEndDateChange = (date: Date | null) => {
     if (date != null) {
-      setEndDate(date);
-      handleOptionChange({
-        target: { value: 'custom' },
-      } as SelectChangeEvent<string>);
+      setEndDate(date)
     }
   };
 
@@ -131,13 +117,11 @@ function TimePeriodSelector({ onTimePeriodChange }: TimePeriodSelectorProps) {
           label="Time Period"
           onChange={handleOptionChange}
         >
-          <MenuItem value="lastWeek">Last Week</MenuItem>
-          <MenuItem value="lastMonth">Last Month</MenuItem>
-          <MenuItem value="lastThreeMonths">Last 3 Months</MenuItem>
-          <MenuItem value="lastSixMonths">Last 6 Months</MenuItem>
-          <MenuItem value="lastYear">Last Year</MenuItem>
-          <MenuItem value="all">All</MenuItem>
-          <MenuItem value="custom">Custom</MenuItem>
+          {Object.values(PeriodValue).map((period) => (
+            <MenuItem key={period} value={period}>
+              {period}
+            </MenuItem>
+          ))}
         </Select>
       </FormControl>
       <div className="time-period-custom-container">
@@ -149,15 +133,14 @@ function TimePeriodSelector({ onTimePeriodChange }: TimePeriodSelectorProps) {
           }}
           onBlur={(e) => {
             handleOptionChange({
-              target: { value: 'custom' },
-            } as SelectChangeEvent<string>);
+              target: { value: PeriodValue.Custom },
+            } as SelectChangeEvent<PeriodValue>);
           }}
           InputLabelProps={{
             shrink: true,
           }}
-          disabled={selectedOption !== 'custom'}
+          disabled={selectedOption !== PeriodValue.Custom}
           value={startDate}
-          // renderInput={(params) => <TextField {...params} />}
         />
         <DateField
           label="End Date"
@@ -167,13 +150,13 @@ function TimePeriodSelector({ onTimePeriodChange }: TimePeriodSelectorProps) {
           }}
           onBlur={(e) => {
             handleOptionChange({
-              target: { value: 'custom' },
-            } as SelectChangeEvent<string>);
+              target: { value: PeriodValue.Custom },
+            } as SelectChangeEvent<PeriodValue>);
           }}
           InputLabelProps={{
             shrink: true,
           }}
-          disabled={selectedOption !== 'custom'}
+          disabled={selectedOption !== PeriodValue.Custom}
           value={endDate}
         />
       </div>

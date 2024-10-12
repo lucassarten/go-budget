@@ -39,11 +39,12 @@ func main() {
 
 	// Create application with options
 	err := wails.Run(&options.App{
-		Title:     "go-budget",
-		Width:     1600,
-		Height:    900,
-		MaxWidth:  3440,
-		MaxHeight: 1440,
+		Title:       "go-budget",
+		Width:       1600,
+		Height:      900,
+		MaxWidth:    3440,
+		MaxHeight:   1440,
+		StartHidden: true,
 		//Menu:               menu,
 		Logger:             logger.NewDefaultLogger(),
 		LogLevel:           logger.DEBUG,

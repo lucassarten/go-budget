@@ -12,21 +12,22 @@ import { useEffect, useState } from 'react';
 import { GetCategoriesByType, GetTransactions } from '../../../wailsjs/go/db/Db';
 import { ent } from "../../../wailsjs/go/models";
 import { formatCurrency, formatDate } from '../../Utils/Formatters';
-import { GetDefaultPeriod, TimePeriod } from '../Dashboard/Dashboard';
+import { GetDefaultPeriod } from '../Dashboard/Dashboard';
 import TimePeriodSelector from '../Selectors/TimePeriodSelector';
+import { PeriodValue, TimePeriod } from '../../Utils/Types';
 
-function getLastPeriod(periodStart: Date, periodEnd: Date, periodType: string): TimePeriod {
-  switch (periodType) {
-    case 'lastWeek':
+function getLastPeriod(periodStart: Date, periodEnd: Date, period: PeriodValue): TimePeriod {
+  switch (period) {
+    case PeriodValue.LastWeek:
       periodStart.setDate(periodStart.getDate() - 7);
       periodEnd.setDate(periodEnd.getDate() - 7);
       break;
-    case 'lastMonth':
+    case PeriodValue.LastMonth:
       periodStart.setMonth(periodStart.getMonth() - 1);
       periodStart.setDate(1);
       periodEnd.setDate(0);
       break;
-    case 'lastThreeMonths':
+    case PeriodValue.LastThreeMonths:
       periodStart.setMonth(periodStart.getMonth() - 3);
       periodStart.setDate(1);
       periodEnd = new Date(periodStart);
@@ -34,18 +35,18 @@ function getLastPeriod(periodStart: Date, periodEnd: Date, periodType: string): 
       periodEnd.setDate(periodEnd.getDate() - 1);
 
       break;
-    case 'lastSixMonths':
+    case PeriodValue.LastSixMonths:
       periodStart.setMonth(periodStart.getMonth() - 6);
       periodStart.setDate(1);
       periodEnd = new Date(periodStart);
       periodEnd.setMonth(periodEnd.getMonth() + 6);
       periodEnd.setDate(periodEnd.getDate() - 1);
       break;
-    case 'lastYear':
+    case PeriodValue.LastYear:
       periodStart.setFullYear(periodStart.getFullYear() - 1);
       periodEnd.setFullYear(periodEnd.getFullYear() - 1);
       break;
-    case 'custom':
+    case PeriodValue.Custom:
       periodStart.setDate(periodStart.getDate() - (periodEnd.getDate() - periodStart.getDate()));
       periodEnd.setDate(periodEnd.getDate() - (periodEnd.getDate() - periodStart.getDate()));
       break;
@@ -54,7 +55,7 @@ function getLastPeriod(periodStart: Date, periodEnd: Date, periodType: string): 
       periodEnd.setDate(periodEnd.getDate() - 7);
       break;
   }
-  return { startDate: periodStart, endDate: periodEnd, period: periodType };
+  return { startDate: periodStart, endDate: periodEnd, period: period };
 }
 
 function StatisticsSummary(
@@ -67,16 +68,16 @@ function StatisticsSummary(
     .filter(
       (transaction) =>
         Number(transaction.amount) < 0 &&
-        new Date(Number(transaction.time) * 1000) >= timePeriod.startDate &&
-        new Date(Number(transaction.time) * 1000) <= timePeriod.endDate
+        new Date(Number(transaction.time)) >= timePeriod.startDate &&
+        new Date(Number(transaction.time)) <= timePeriod.endDate
     )
     .reduce((acc, transaction) => acc + Math.abs(Number(transaction.amount)), 0);
   const totalIncome = transactions
     .filter(
       (transaction) =>
         Number(transaction.amount) > 0 &&
-        new Date(Number(transaction.time) * 1000) >= timePeriod.startDate &&
-        new Date(Number(transaction.time) * 1000) <= timePeriod.endDate
+        new Date(Number(transaction.time)) >= timePeriod.startDate &&
+        new Date(Number(transaction.time)) <= timePeriod.endDate
     )
     .reduce((acc, transaction) => acc + Number(transaction.amount), 0);
   const totalSavings = totalIncome - totalExpense;
@@ -86,14 +87,14 @@ function StatisticsSummary(
   const transactionsExpensePrevious = transactions.filter(
     (transaction) =>
       Number(transaction.amount) < 0 &&
-      new Date(Number(transaction.time) * 1000) >= previousTimePeriod.startDate &&
-      new Date(Number(transaction.time) * 1000) <= previousTimePeriod.endDate
+      new Date(Number(transaction.time)) >= previousTimePeriod.startDate &&
+      new Date(Number(transaction.time)) <= previousTimePeriod.endDate
   );
   const transactionsIncomePrevious = transactions.filter(
     (transaction) =>
       Number(transaction.amount) > 0 &&
-      new Date(Number(transaction.time) * 1000) >= previousTimePeriod.startDate &&
-      new Date(Number(transaction.time) * 1000) <= previousTimePeriod.endDate
+      new Date(Number(transaction.time)) >= previousTimePeriod.startDate &&
+      new Date(Number(transaction.time)) <= previousTimePeriod.endDate
   );
   const totalExpensePrevious = transactionsExpensePrevious.reduce(
     (acc, transaction) => acc + Math.abs(Number(transaction.amount)),
@@ -222,27 +223,27 @@ function StatisticsByCategory(
     transactionsCurrent = transactions.filter(
       (transaction) =>
         Number(transaction.amount) < 0 &&
-        new Date(Number(transaction.time) * 1000) >= timePeriod.startDate &&
-        new Date(Number(transaction.time) * 1000) <= timePeriod.endDate
+        new Date(Number(transaction.time)) >= timePeriod.startDate &&
+        new Date(Number(transaction.time)) <= timePeriod.endDate
     );
     transactionsPrevious = transactions.filter(
       (transaction) =>
         Number(transaction.amount) < 0 &&
-        new Date(Number(transaction.time) * 1000) >= previousTimePeriod.startDate &&
-        new Date(Number(transaction.time) * 1000) <= previousTimePeriod.endDate
+        new Date(Number(transaction.time)) >= previousTimePeriod.startDate &&
+        new Date(Number(transaction.time)) <= previousTimePeriod.endDate
     );
   } else {
     transactionsCurrent = transactions.filter(
       (transaction) =>
         Number(transaction.amount) > 0 &&
-        new Date(Number(transaction.time) * 1000) >= timePeriod.startDate &&
-        new Date(Number(transaction.time) * 1000) <= timePeriod.endDate
+        new Date(Number(transaction.time)) >= timePeriod.startDate &&
+        new Date(Number(transaction.time)) <= timePeriod.endDate
     );
     transactionsPrevious = transactions.filter(
       (transaction) =>
         Number(transaction.amount) > 0 &&
-        new Date(Number(transaction.time) * 1000) >= previousTimePeriod.startDate &&
-        new Date(Number(transaction.time) * 1000) <= previousTimePeriod.endDate
+        new Date(Number(transaction.time)) >= previousTimePeriod.startDate &&
+        new Date(Number(transaction.time)) <= previousTimePeriod.endDate
     );
   }
 
@@ -328,7 +329,7 @@ function Statistics() {
   const [timePeriod, setTimePeriod] = useState<TimePeriod>({
     startDate: GetDefaultPeriod().startDate,
     endDate: GetDefaultPeriod().endDate,
-    period: 'week',
+    period: PeriodValue.LastWeek,
   });
   useEffect(() => {
     // get transactions from db between time period

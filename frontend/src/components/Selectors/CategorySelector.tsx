@@ -38,7 +38,6 @@ function CategorySelector({
         className="category-selector"
         id="CategorySelector"
         label="Category"
-        // @ts-ignore
         value={selectedOption}
         onChange={handleOptionChange}
       >
