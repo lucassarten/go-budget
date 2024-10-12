@@ -12,6 +12,7 @@ import { GetCategories, GetTransactions } from "../../../wailsjs/go/db/Db";
 import { ent } from "../../../wailsjs/go/models";
 
 import { formatCurrency, formatDate } from '../../Utils/Formatters';
+import { IntervalValue, PeriodValue, TimeInterval, TimePeriod } from '../../Utils/Types';
 import CategorySelector from '../Selectors/CategorySelector';
 import IntervalSelector from '../Selectors/IntervalSelector';
 import TimePeriodSelector from '../Selectors/TimePeriodSelector';
@@ -186,17 +187,17 @@ function IncomeEarningSavingsComparison(transactions: ent.Transaction[]) {
  * @returns
  */
 function budgetComparisonBarChart(
-  timePeriod: TimePeriod,
+  timeInterval: TimeInterval,
   category: ent.Category,
   transactions: ent.Transaction[],
   type: string
 ) {
   // Calculate budget based on the category and time period length
-  const budget = calculateBudget(category, timePeriod);
+  const budget = calculateBudget(category, timeInterval);
   // Calculate actuals based on the transactions, category, and type
-  const actuals = calculateActuals(transactions, Number(category.id), type, timePeriod);
+  const actuals = calculateActuals(transactions, Number(category.id), type, timeInterval);
   // Generate labels for the x-axis based on the time periods
-  const labels = generateLabels(timePeriod);
+  const labels = generateLabels(timeInterval);
 
   return (
     <Bar
@@ -274,27 +275,27 @@ function budgetComparisonBarChart(
 }
 
 // Calculate implied budget
-function calculateBudget(category: ent.Category, timePeriod: TimePeriod): number {
+function calculateBudget(category: ent.Category, timeInterval: TimeInterval): number {
   if (!category) return 0;
-  return Number(category.monthly) * getTimePeriodFactor(timePeriod);
+  return Number(category.monthly) * getTimeIntervalFactor(timeInterval);
 }
 
-function calculateActuals(transactions: ent.Transaction[], categoryID: number, type: string, timePeriod: TimePeriod): number[] {
-  return generatePeriods(timePeriod)
-    .map(period => calculatePeriodActual(transactions, categoryID, type, period));
+function calculateActuals(transactions: ent.Transaction[], categoryID: number, type: string, timeInterval: TimeInterval): number[] {
+  return generateIntervals(timeInterval)
+    .map(interval => calculatePeriodActual(transactions, categoryID, type, interval));
 }
 
 // Calculate the total expenses or income for a given category and time period
-function calculatePeriodActual(transactions: ent.Transaction[], categoryID: number, type: string, period: TimePeriod): number {
+function calculatePeriodActual(transactions: ent.Transaction[], categoryID: number, type: string, interval: TimeInterval): number {
   return transactions
-    .filter(transaction => isTransactionInPeriod(transaction, period))
+    .filter(transaction => isTransactionInInterval(transaction, interval))
     .filter(transaction => isTransactionOfType(transaction, categoryID, type))
     .reduce((acc, transaction) => acc + Math.abs(Number(transaction.amount)), 0);
 }
 
-function isTransactionInPeriod(transaction: ent.Transaction, period: TimePeriod): boolean {
-  const transactionDate = new Date(Number(transaction.time) * 1000);
-  return transactionDate >= period.startDate && transactionDate < period.endDate;
+function isTransactionInInterval(transaction: ent.Transaction, interval: TimeInterval): boolean {
+  const transactionDate = new Date(Number(transaction.time));
+  return transactionDate >= interval.startDate && transactionDate < interval.endDate;
 }
 
 function isTransactionOfType(transaction: ent.Transaction, categoryID: number, type: string): boolean {
@@ -302,45 +303,45 @@ function isTransactionOfType(transaction: ent.Transaction, categoryID: number, t
 }
 
 // Generate labels for x-axis
-function generateLabels(timePeriod: TimePeriod): string[] {
-  return generatePeriods(timePeriod)
-    .map(period => `${formatDate(period.startDate)} - ${formatDate(period.endDate)}`);
+function generateLabels(timeInterval: TimeInterval): string[] {
+  return generateIntervals(timeInterval)
+    .map(interval => `${formatDate(interval.startDate)} - ${formatDate(interval.endDate)}`);
 }
 
 // Generate periods based on the time period
-function generatePeriods(timePeriod: TimePeriod): TimePeriod[] {
-  const periods: TimePeriod[] = [];
-  let periodStart = new Date(timePeriod.startDate.getTime());
-  let periodEnd = new Date(timePeriod.endDate.getTime());
+function generateIntervals(timeInterval: TimeInterval): TimeInterval[] {
+  const intervals: TimeInterval[] = [];
+  let intervalStart = new Date(timeInterval.startDate.getTime());
+  let intervalEnd = new Date(timeInterval.endDate.getTime());
 
   for (let i = 0; i < 10; i++) {
-    periods.push({
-      startDate: new Date(periodStart),
-      endDate: new Date(periodEnd),
-      period: timePeriod.period
+    intervals.push({
+      startDate: new Date(intervalStart),
+      endDate: new Date(intervalEnd),
+      interval: timeInterval.interval
     });
-    movePeriodBackward(periodStart, periodEnd, timePeriod.period);
+    moveIntervalBackward(intervalStart, intervalEnd, timeInterval.interval);
   }
 
-  return periods;
+  return intervals;
 }
 
-function movePeriodBackward(periodStart: Date, periodEnd: Date, periodType: string): TimePeriod {
-  switch (periodType) {
-    case 'day':
+function moveIntervalBackward(periodStart: Date, periodEnd: Date, interval: IntervalValue): TimeInterval {
+  switch (interval) {
+    case IntervalValue.Day:
       periodStart.setDate(periodStart.getDate() - 1);
       periodEnd.setDate(periodEnd.getDate() - 1);
       break;
-    case 'week':
+    case IntervalValue.Week:
       periodStart.setDate(periodStart.getDate() - 7);
       periodEnd.setDate(periodEnd.getDate() - 7);
       break;
-    case 'month':
+    case IntervalValue.Month:
       periodStart.setMonth(periodStart.getMonth() - 1);
       periodStart.setDate(1);
       periodEnd.setDate(0);
       break;
-    case 'year':
+    case IntervalValue.Year:
       periodStart.setFullYear(periodStart.getFullYear() - 1);
       periodEnd.setFullYear(periodEnd.getFullYear() - 1);
       break;
@@ -349,35 +350,36 @@ function movePeriodBackward(periodStart: Date, periodEnd: Date, periodType: stri
       periodEnd.setDate(periodEnd.getDate() - 7);
       break;
   }
-  return { startDate: periodStart, endDate: periodEnd, period: periodType };
+  return { startDate: periodStart, endDate: periodEnd, interval: interval };
 }
 
-function getTimePeriodFactor(timePeriod: TimePeriod): number {
-  const timePeriodLength = timePeriod.endDate.getTime() - timePeriod.startDate.getTime();
-  return timePeriodLength / (1000 * 60 * 60 * 24 * 30.5); // Assuming a month has 30.5 days
+function getTimeIntervalFactor(timeInterval: TimeInterval): number {
+  const timeIntervalLength = timeInterval.endDate.getTime() - timeInterval.startDate.getTime();
+  return timeIntervalLength / (1000 * 60 * 60 * 24 * 30.5); // Assuming a month has 30.5 days
 }
 
 function Dashboard() {
   const [transactions, setTransactions] = useState<ent.Transaction[]>([]);
-  const [transactionsAll, setTransactionsAll] = useState<ent.Transaction[]>([]);
+  const [transactionsInTimeRange, setTransactionsInTimeRange] = useState<ent.Transaction[]>([]);
+  const [categories, setCategories] = useState<ent.Category[]>([]);
   const [categoriesIncome, setCategoriesIncome] = useState<ent.Category[]>([]);
   const [categoriesExpense, setCategoriesExpense] = useState<ent.Category[]>([]);
-  const [timePeriod, setTimePeriod] = useState<TimePeriod>({
+  // This is the selection of data that the dashboard displays
+  const [timeRange, setTimeRange] = useState<TimePeriod>({
     startDate: new Date(0),
     endDate: new Date(),
-    period: 'week',
+    period: PeriodValue.LastWeek,
   });
-  const [intervalExpense, setIntervalExpense] = useState<TimePeriod>({
-    // default 1 week
+  // These are buckets to group transactions into
+  const [intervalExpense, setIntervalExpense] = useState<TimeInterval>({
     startDate: GetDefaultPeriod().startDate,
     endDate: GetDefaultPeriod().endDate,
-    period: 'week',
+    interval: IntervalValue.Week,
   });
-  const [intervalIncome, setIntervalIncome] = useState<TimePeriod>({
-    // default 1 week
+  const [intervalIncome, setIntervalIncome] = useState<TimeInterval>({
     startDate: GetDefaultPeriod().startDate,
     endDate: GetDefaultPeriod().endDate,
-    period: 'week',
+    interval: IntervalValue.Week,
   });
   const [selectedCategoryExpense, setSelectedCategoryExpense] =
     useState<ent.Category>();
@@ -398,36 +400,45 @@ function Dashboard() {
       });
       // remove reimbursed transaction from list
       resp = resp.filter((transaction) => !transaction.reimbursed_by_id);
-      setTransactionsAll(resp);
-      if (resp != null && resp.length > 0) {
-        // filter out transactions that are not in the time period
-        const filteredTransactions = resp.filter((transaction) => {
-          const transactionDate = new Date(Number(transaction.time) * 1000);
-          return (
-            transactionDate >= timePeriod.startDate &&
-            transactionDate <= timePeriod.endDate
-          );
-        });
-        setTransactions(filteredTransactions);
-      }
+      setTransactions(resp);
     });
     // get categories from db
     GetCategories().then((resp: ent.Category[]) => {
-      if (resp != null && resp.length > 0) {
-        const expense = resp.filter((c) => c.type === "Expense")
-        const income = resp.filter((c) => c.type === "Income")
-        setSelectedCategoryExpense(expense[0]);
-        setCategoriesExpense(expense);
-        setSelectedCategoryIncome(income[0]);
-        setCategoriesIncome(income);
-      }
+      setCategories(resp);
     });
-  }, [timePeriod]);
+  }, []);
 
-  const transactionsExpense = transactions.filter(
+  // Filter transactions down to those within the time range
+  useEffect(() => {
+    if (timeRange.startDate && timeRange.endDate) {
+      setTransactionsInTimeRange(transactions.filter((transaction) => {
+        const transactionDate = new Date(Number(transaction.time));
+        return (
+          transactionDate >= timeRange.startDate &&
+          transactionDate <= timeRange.endDate
+        );
+      }));
+    }
+  }, [timeRange, transactions]);
+
+  // Split categories into expense and income categories
+  useEffect(() => {
+    setCategoriesIncome(categories.filter((c) => c.type === "Income"));
+    setCategoriesExpense(categories.filter((c) => c.type === "Expense"));
+
+    if (categoriesIncome.length > 0) {
+      setSelectedCategoryIncome(categoriesIncome[0]);
+    }
+    if (categoriesExpense.length > 0) {
+      setSelectedCategoryExpense(categoriesExpense[0]);
+    }
+  }, [categories]);
+
+  // Split transactions into expense and income
+  const transactionsExpense = transactionsInTimeRange.filter(
     (transaction) => Number(transaction.amount) < 0
   );
-  const transactionsIncome = transactions.filter(
+  const transactionsIncome = transactionsInTimeRange.filter(
     (transaction) => Number(transaction.amount) > 0
   );
   // wait for use state to be set before returning
@@ -440,12 +451,12 @@ function Dashboard() {
   return (
     <div className="dashboard-container">
       <div className="time-period-selector-container">
-        <TimePeriodSelector onTimePeriodChange={setTimePeriod} />
+        <TimePeriodSelector onTimePeriodChange={setTimeRange} />
       </div>
       <div className="dashboard-graph-container">
         <div className="dashboard-chart-grid">
           <div className="bar-chart-container">
-            {IncomeEarningSavingsComparison(transactions)}
+            {IncomeEarningSavingsComparison(transactionsInTimeRange)}
           </div>
           <div className="pie-chart-container">
             {categoryPieChart(
@@ -471,7 +482,7 @@ function Dashboard() {
               {budgetComparisonBarChart(
                 intervalExpense,
                 selectedCategoryExpense,
-                transactionsAll,
+                transactionsInTimeRange,
                 'Expense'
               )}
             </div>
@@ -488,7 +499,7 @@ function Dashboard() {
               {budgetComparisonBarChart(
                 intervalIncome,
                 selectedCategoryIncome,
-                transactionsAll,
+                transactionsInTimeRange,
                 'Income'
               )}
             </div>
@@ -499,11 +510,6 @@ function Dashboard() {
   );
 }
 
-export interface TimePeriod {
-  startDate: Date;
-  endDate: Date;
-  period: string;
-}
 
 export function GetDefaultPeriod(): TimePeriod {
   const startDateCalc = new Date();
@@ -515,7 +521,7 @@ export function GetDefaultPeriod(): TimePeriod {
   return {
     startDate: startDateCalc,
     endDate: endDateCalc,
-    period: 'week',
+    period: PeriodValue.LastWeek,
   };
 }
 
