@@ -22,9 +22,6 @@ function TimePeriodSelector({ onTimePeriodChange }: TimePeriodSelectorProps) {
   const handleOptionChange = (event: SelectChangeEvent<PeriodValue>) => {
     setSelectedOption(event.target.value as PeriodValue);
     let startDateCalc, endDateCalc;
-
-    console.log(startDate, endDate);
-
     switch (event.target.value as PeriodValue) {
       case PeriodValue.LastWeek:
         startDateCalc = new Date();
@@ -68,7 +65,6 @@ function TimePeriodSelector({ onTimePeriodChange }: TimePeriodSelectorProps) {
         endDateCalc = new Date();
         break;
       case PeriodValue.Custom:
-        console.log('custom');
         startDateCalc = startDate;
         endDateCalc = endDate;
         break;

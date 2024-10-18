@@ -10,6 +10,7 @@ import (
 	"go-budget/ent/transaction"
 	"math"
 
+	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
@@ -107,7 +108,7 @@ func (tq *TransactionQuery) QueryReimbursedByTransaction() *TransactionQuery {
 // First returns the first Transaction entity from the query.
 // Returns a *NotFoundError when no Transaction was found.
 func (tq *TransactionQuery) First(ctx context.Context) (*Transaction, error) {
-	nodes, err := tq.Limit(1).All(setContextOp(ctx, tq.ctx, "First"))
+	nodes, err := tq.Limit(1).All(setContextOp(ctx, tq.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
@@ -130,7 +131,7 @@ func (tq *TransactionQuery) FirstX(ctx context.Context) *Transaction {
 // Returns a *NotFoundError when no Transaction ID was found.
 func (tq *TransactionQuery) FirstID(ctx context.Context) (id int, err error) {
 	var ids []int
-	if ids, err = tq.Limit(1).IDs(setContextOp(ctx, tq.ctx, "FirstID")); err != nil {
+	if ids, err = tq.Limit(1).IDs(setContextOp(ctx, tq.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -153,7 +154,7 @@ func (tq *TransactionQuery) FirstIDX(ctx context.Context) int {
 // Returns a *NotSingularError when more than one Transaction entity is found.
 // Returns a *NotFoundError when no Transaction entities are found.
 func (tq *TransactionQuery) Only(ctx context.Context) (*Transaction, error) {
-	nodes, err := tq.Limit(2).All(setContextOp(ctx, tq.ctx, "Only"))
+	nodes, err := tq.Limit(2).All(setContextOp(ctx, tq.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
 	}
@@ -181,7 +182,7 @@ func (tq *TransactionQuery) OnlyX(ctx context.Context) *Transaction {
 // Returns a *NotFoundError when no entities are found.
 func (tq *TransactionQuery) OnlyID(ctx context.Context) (id int, err error) {
 	var ids []int
-	if ids, err = tq.Limit(2).IDs(setContextOp(ctx, tq.ctx, "OnlyID")); err != nil {
+	if ids, err = tq.Limit(2).IDs(setContextOp(ctx, tq.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -206,7 +207,7 @@ func (tq *TransactionQuery) OnlyIDX(ctx context.Context) int {
 
 // All executes the query and returns a list of Transactions.
 func (tq *TransactionQuery) All(ctx context.Context) ([]*Transaction, error) {
-	ctx = setContextOp(ctx, tq.ctx, "All")
+	ctx = setContextOp(ctx, tq.ctx, ent.OpQueryAll)
 	if err := tq.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
@@ -228,7 +229,7 @@ func (tq *TransactionQuery) IDs(ctx context.Context) (ids []int, err error) {
 	if tq.ctx.Unique == nil && tq.path != nil {
 		tq.Unique(true)
 	}
-	ctx = setContextOp(ctx, tq.ctx, "IDs")
+	ctx = setContextOp(ctx, tq.ctx, ent.OpQueryIDs)
 	if err = tq.Select(transaction.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
@@ -246,7 +247,7 @@ func (tq *TransactionQuery) IDsX(ctx context.Context) []int {
 
 // Count returns the count of the given query.
 func (tq *TransactionQuery) Count(ctx context.Context) (int, error) {
-	ctx = setContextOp(ctx, tq.ctx, "Count")
+	ctx = setContextOp(ctx, tq.ctx, ent.OpQueryCount)
 	if err := tq.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
@@ -264,7 +265,7 @@ func (tq *TransactionQuery) CountX(ctx context.Context) int {
 
 // Exist returns true if the query has elements in the graph.
 func (tq *TransactionQuery) Exist(ctx context.Context) (bool, error) {
-	ctx = setContextOp(ctx, tq.ctx, "Exist")
+	ctx = setContextOp(ctx, tq.ctx, ent.OpQueryExist)
 	switch _, err := tq.FirstID(ctx); {
 	case IsNotFound(err):
 		return false, nil
@@ -605,7 +606,7 @@ func (tgb *TransactionGroupBy) Aggregate(fns ...AggregateFunc) *TransactionGroup
 
 // Scan applies the selector query and scans the result into the given value.
 func (tgb *TransactionGroupBy) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, tgb.build.ctx, "GroupBy")
+	ctx = setContextOp(ctx, tgb.build.ctx, ent.OpQueryGroupBy)
 	if err := tgb.build.prepareQuery(ctx); err != nil {
 		return err
 	}
@@ -653,7 +654,7 @@ func (ts *TransactionSelect) Aggregate(fns ...AggregateFunc) *TransactionSelect 
 
 // Scan applies the selector query and scans the result into the given value.
 func (ts *TransactionSelect) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, ts.ctx, "Select")
+	ctx = setContextOp(ctx, ts.ctx, ent.OpQuerySelect)
 	if err := ts.prepareQuery(ctx); err != nil {
 		return err
 	}

@@ -398,8 +398,8 @@ function Dashboard() {
           }
         }
       });
-      // remove reimbursed transaction from list
-      resp = resp.filter((transaction) => !transaction.reimbursed_by_id);
+      // remove reimbursed and ignored transactions from list
+      resp = resp.filter((transaction) => !transaction.reimbursed_by_id && !transaction.ignored);
       setTransactions(resp);
     });
     // get categories from db

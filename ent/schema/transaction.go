@@ -18,6 +18,7 @@ func (Transaction) Fields() []ent.Field {
 		field.Int64("time"),
 		field.String("description"),
 		field.Float("amount").Default(0.0),
+		field.Bool("ignored").Default(false),
 		field.Int("category_id").Optional(),
 		field.Int("reimbursed_by_id").Optional().Nillable(),
 	}

@@ -69,6 +69,11 @@ func Amount(v float64) predicate.Transaction {
 	return predicate.Transaction(sql.FieldEQ(FieldAmount, v))
 }
 
+// Ignored applies equality check predicate on the "ignored" field. It's identical to IgnoredEQ.
+func Ignored(v bool) predicate.Transaction {
+	return predicate.Transaction(sql.FieldEQ(FieldIgnored, v))
+}
+
 // CategoryID applies equality check predicate on the "category_id" field. It's identical to CategoryIDEQ.
 func CategoryID(v int) predicate.Transaction {
 	return predicate.Transaction(sql.FieldEQ(FieldCategoryID, v))
@@ -222,6 +227,16 @@ func AmountLT(v float64) predicate.Transaction {
 // AmountLTE applies the LTE predicate on the "amount" field.
 func AmountLTE(v float64) predicate.Transaction {
 	return predicate.Transaction(sql.FieldLTE(FieldAmount, v))
+}
+
+// IgnoredEQ applies the EQ predicate on the "ignored" field.
+func IgnoredEQ(v bool) predicate.Transaction {
+	return predicate.Transaction(sql.FieldEQ(FieldIgnored, v))
+}
+
+// IgnoredNEQ applies the NEQ predicate on the "ignored" field.
+func IgnoredNEQ(v bool) predicate.Transaction {
+	return predicate.Transaction(sql.FieldNEQ(FieldIgnored, v))
 }
 
 // CategoryIDEQ applies the EQ predicate on the "category_id" field.

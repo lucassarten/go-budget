@@ -13,6 +13,7 @@ type Transaction struct {
 	Time         int64   `json:"time"`
 	Description  string  `json:"description"`
 	Amount       float64 `json:"amount"`
+	Ignored      bool     `json:"ignored"`
 	CategoryID   int     `json:"category_id"`
 	ReimbursedBy *int    `json:"reimbursed_by_id"`
 }

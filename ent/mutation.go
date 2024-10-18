@@ -749,6 +749,7 @@ type TransactionMutation struct {
 	description                      *string
 	amount                           *float64
 	addamount                        *float64
+	ignored                          *bool
 	clearedFields                    map[string]struct{}
 	category                         *int
 	clearedcategory                  bool
@@ -1011,6 +1012,42 @@ func (m *TransactionMutation) ResetAmount() {
 	m.addamount = nil
 }
 
+// SetIgnored sets the "ignored" field.
+func (m *TransactionMutation) SetIgnored(b bool) {
+	m.ignored = &b
+}
+
+// Ignored returns the value of the "ignored" field in the mutation.
+func (m *TransactionMutation) Ignored() (r bool, exists bool) {
+	v := m.ignored
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIgnored returns the old "ignored" field's value of the Transaction entity.
+// If the Transaction object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TransactionMutation) OldIgnored(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIgnored is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIgnored requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIgnored: %w", err)
+	}
+	return oldValue.Ignored, nil
+}
+
+// ResetIgnored resets all changes to the "ignored" field.
+func (m *TransactionMutation) ResetIgnored() {
+	m.ignored = nil
+}
+
 // SetCategoryID sets the "category_id" field.
 func (m *TransactionMutation) SetCategoryID(i int) {
 	m.category = &i
@@ -1210,7 +1247,7 @@ func (m *TransactionMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *TransactionMutation) Fields() []string {
-	fields := make([]string, 0, 5)
+	fields := make([]string, 0, 6)
 	if m.time != nil {
 		fields = append(fields, transaction.FieldTime)
 	}
@@ -1219,6 +1256,9 @@ func (m *TransactionMutation) Fields() []string {
 	}
 	if m.amount != nil {
 		fields = append(fields, transaction.FieldAmount)
+	}
+	if m.ignored != nil {
+		fields = append(fields, transaction.FieldIgnored)
 	}
 	if m.category != nil {
 		fields = append(fields, transaction.FieldCategoryID)
@@ -1240,6 +1280,8 @@ func (m *TransactionMutation) Field(name string) (ent.Value, bool) {
 		return m.Description()
 	case transaction.FieldAmount:
 		return m.Amount()
+	case transaction.FieldIgnored:
+		return m.Ignored()
 	case transaction.FieldCategoryID:
 		return m.CategoryID()
 	case transaction.FieldReimbursedByID:
@@ -1259,6 +1301,8 @@ func (m *TransactionMutation) OldField(ctx context.Context, name string) (ent.Va
 		return m.OldDescription(ctx)
 	case transaction.FieldAmount:
 		return m.OldAmount(ctx)
+	case transaction.FieldIgnored:
+		return m.OldIgnored(ctx)
 	case transaction.FieldCategoryID:
 		return m.OldCategoryID(ctx)
 	case transaction.FieldReimbursedByID:
@@ -1292,6 +1336,13 @@ func (m *TransactionMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetAmount(v)
+		return nil
+	case transaction.FieldIgnored:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIgnored(v)
 		return nil
 	case transaction.FieldCategoryID:
 		v, ok := value.(int)
@@ -1406,6 +1457,9 @@ func (m *TransactionMutation) ResetField(name string) error {
 		return nil
 	case transaction.FieldAmount:
 		m.ResetAmount()
+		return nil
+	case transaction.FieldIgnored:
+		m.ResetIgnored()
 		return nil
 	case transaction.FieldCategoryID:
 		m.ResetCategoryID()

@@ -1,13 +1,5 @@
 package db
 
-// requiredCategories is a list of categories that are required to be present in the database
-var requiredCategories = []Category{
-	{Name: "❗ Uncategorized", Monthly: 1.0, Weekly: 1.0, Colour: "#9ba9ff"},
-	{Name: "🚫 Ignore", Monthly: 1.0, Weekly: 1.0, Colour: "#fc035e"},
-	{Name: "❓ Other", Monthly: 1.0, Weekly: 1.0, Colour: "#5d97d1"},
-	{Name: "🔁 Reimbursement", Monthly: 1.0, Weekly: 1.0, Colour: "#cdf5b7"},
-}
-
 // defaultCategoriesExpense is a list of default expense categories
 var defaultCategoriesExpense = []Category{
 	{Name: "🍞 Groceries", Monthly: 1.0, Weekly: 1.0, Colour: "#9ba9ff"},

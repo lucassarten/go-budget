@@ -23,6 +23,8 @@ type Transaction struct {
 	Description string `json:"description,omitempty"`
 	// Amount holds the value of the "amount" field.
 	Amount float64 `json:"amount,omitempty"`
+	// Ignored holds the value of the "ignored" field.
+	Ignored bool `json:"ignored,omitempty"`
 	// CategoryID holds the value of the "category_id" field.
 	CategoryID int `json:"category_id,omitempty"`
 	// ReimbursedByID holds the value of the "reimbursed_by_id" field.
@@ -71,6 +73,8 @@ func (*Transaction) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case transaction.FieldIgnored:
+			values[i] = new(sql.NullBool)
 		case transaction.FieldAmount:
 			values[i] = new(sql.NullFloat64)
 		case transaction.FieldID, transaction.FieldTime, transaction.FieldCategoryID, transaction.FieldReimbursedByID:
@@ -115,6 +119,12 @@ func (t *Transaction) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field amount", values[i])
 			} else if value.Valid {
 				t.Amount = value.Float64
+			}
+		case transaction.FieldIgnored:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field ignored", values[i])
+			} else if value.Valid {
+				t.Ignored = value.Bool
 			}
 		case transaction.FieldCategoryID:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -183,6 +193,9 @@ func (t *Transaction) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("amount=")
 	builder.WriteString(fmt.Sprintf("%v", t.Amount))
+	builder.WriteString(", ")
+	builder.WriteString("ignored=")
+	builder.WriteString(fmt.Sprintf("%v", t.Ignored))
 	builder.WriteString(", ")
 	builder.WriteString("category_id=")
 	builder.WriteString(fmt.Sprintf("%v", t.CategoryID))

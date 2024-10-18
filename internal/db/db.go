@@ -73,7 +73,7 @@ func (db *Db) Startup(ctx context.Context) {
 			panic(err)
 		}
 		for _, t := range GenerateTestTransactions() {
-			_, err := db.CreateTransaction(t.Time, t.Description, t.Amount, t.CategoryID)
+			_, err := db.CreateTransaction(t.Time, t.Description, t.Amount, t.CategoryID, t.Ignored)
 			if err != nil {
 				panic(err)
 			}
@@ -179,11 +179,12 @@ func (db *Db) GetCategoryTransactions(category ent.Category) ([]*ent.Transaction
 	return tx, nil
 }
 
-func (db *Db) CreateTransaction(time int64, description string, amount float64, categoryID int) (*ent.Transaction, error) {
+func (db *Db) CreateTransaction(time int64, description string, amount float64, categoryID int, ignored bool) (*ent.Transaction, error) {
 	return db.client.Transaction.Create().
 		SetTime(time).
 		SetDescription(description).
 		SetAmount(amount).
+		SetIgnored(ignored).
 		SetCategoryID(categoryID).
 		Save(db.ctx)
 }
@@ -200,7 +201,7 @@ func (db *Db) CreateCategory(name string, monthly float64, weekly float64, colou
 }
 
 // UpdateTransaction updates a transaction with the given details
-func (db *Db) UpdateTransaction(id int, time *int64, description *string, amount *float64, categoryID *int, reimbursedByID *int) (*ent.Transaction, error) {
+func (db *Db) UpdateTransaction(id int, time *int64, description *string, amount *float64, categoryID *int, reimbursedByID *int, ignored *bool) (*ent.Transaction, error) {
 	// println(id, *description, *categoryID, *time)
 	// if reimbursedByID != nil {
 	// 	println(*reimbursedByID)
@@ -245,7 +246,9 @@ func (db *Db) UpdateTransaction(id int, time *int64, description *string, amount
 		updater.ClearReimbursedByID()
 		updater.ClearReimbursedByTransaction()
 	}
-
+	if ignored != nil {
+		updater.SetIgnored(*ignored)
+	}
 	tx, err = updater.Save(db.ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update transaction: %w", err)
@@ -328,6 +331,7 @@ func generateTestExpenses() []Transaction {
 			Description: fmt.Sprintf("Expense #%d", i+1),
 			Amount:      amount,
 			CategoryID:  category + 1,
+			Ignored:     false,
 		}
 
 		expenses = append(expenses, expense)
@@ -347,6 +351,7 @@ func generateTestExpenses() []Transaction {
 			Description: fmt.Sprintf("Expense #%d", i+1),
 			Amount:      amount,
 			CategoryID:  1,
+			Ignored:     false,
 		}
 
 		expenses = append(expenses, expense)
@@ -376,6 +381,7 @@ func generateTestIncomes() []Transaction {
 			Description: fmt.Sprintf("Income #%d", i+1),
 			Amount:      amount,
 			CategoryID:  category + 1,
+			Ignored:     false,
 		}
 
 		incomes = append(incomes, income)

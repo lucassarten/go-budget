@@ -18,6 +18,8 @@ const (
 	FieldDescription = "description"
 	// FieldAmount holds the string denoting the amount field in the database.
 	FieldAmount = "amount"
+	// FieldIgnored holds the string denoting the ignored field in the database.
+	FieldIgnored = "ignored"
 	// FieldCategoryID holds the string denoting the category_id field in the database.
 	FieldCategoryID = "category_id"
 	// FieldReimbursedByID holds the string denoting the reimbursed_by_id field in the database.
@@ -47,6 +49,7 @@ var Columns = []string{
 	FieldTime,
 	FieldDescription,
 	FieldAmount,
+	FieldIgnored,
 	FieldCategoryID,
 	FieldReimbursedByID,
 }
@@ -64,6 +67,8 @@ func ValidColumn(column string) bool {
 var (
 	// DefaultAmount holds the default value on creation for the "amount" field.
 	DefaultAmount float64
+	// DefaultIgnored holds the default value on creation for the "ignored" field.
+	DefaultIgnored bool
 )
 
 // OrderOption defines the ordering options for the Transaction queries.
@@ -87,6 +92,11 @@ func ByDescription(opts ...sql.OrderTermOption) OrderOption {
 // ByAmount orders the results by the amount field.
 func ByAmount(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAmount, opts...).ToFunc()
+}
+
+// ByIgnored orders the results by the ignored field.
+func ByIgnored(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIgnored, opts...).ToFunc()
 }
 
 // ByCategoryID orders the results by the category_id field.

@@ -343,8 +343,8 @@ function Statistics() {
           }
         }
       });
-      // remove reimbursed transaction from list
-      resp = resp.filter((transaction) => !transaction.reimbursed_by_id);
+      // remove reimbursed and ignored transactions from list
+      resp = resp.filter((transaction) => !transaction.reimbursed_by_id && !transaction.ignored);
       setTransactionsAll(resp);
     });
     // get categories from db
