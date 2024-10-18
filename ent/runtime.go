@@ -34,4 +34,8 @@ func init() {
 	transactionDescAmount := transactionFields[3].Descriptor()
 	// transaction.DefaultAmount holds the default value on creation for the amount field.
 	transaction.DefaultAmount = transactionDescAmount.Default.(float64)
+	// transactionDescIgnored is the schema descriptor for ignored field.
+	transactionDescIgnored := transactionFields[4].Descriptor()
+	// transaction.DefaultIgnored holds the default value on creation for the ignored field.
+	transaction.DefaultIgnored = transactionDescIgnored.Default.(bool)
 }

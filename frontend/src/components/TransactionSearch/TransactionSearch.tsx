@@ -109,7 +109,7 @@ const TransactionSearch = ({
           values: categoryIds,
           useFormatter: true
         },
-        valueFormatter: params => fetchedCategories.find(cat => cat.id === params.value)?.name || 'unknown',
+        valueFormatter: params => fetchedCategories.find(cat => cat.id === params.value)?.name || '❗ Uncategorized',
         valueParser: params => fetchedCategories.find(cat => cat.name === params.newValue)?.id
       }
     ]), [categoryIds]);
@@ -143,6 +143,7 @@ const TransactionSearch = ({
       </Box>
       <div className="ag-theme-material-dark" style={{ height: 'calc(100% - 30px)' }}>
         <AgGridReact
+          suppressScrollOnNewData={true}
           ref={gridRef}
           rowData={reimbursedOnly ? nonReimbursedTransactions : filteredTransactions}
           columnDefs={colDefs}

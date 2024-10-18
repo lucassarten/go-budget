@@ -7,14 +7,12 @@ import (
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/logger"
-
-	//"github.com/wailsapp/wails/v2/pkg/menu"
-	//"github.com/wailsapp/wails/v2/pkg/menu/keys"
+	"github.com/wailsapp/wails/v2/pkg/menu"
+	"github.com/wailsapp/wails/v2/pkg/menu/keys"
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 	"github.com/wailsapp/wails/v2/pkg/options/linux"
-
-	//"github.com/wailsapp/wails/v2/pkg/runtime"
 
 	"go-budget/internal/db"
 )
@@ -76,15 +74,15 @@ func main() {
 	}
 }
 
-// func setupMenu(app *App, db *db.Db) *menu.Menu {
-// 	AppMenu := menu.NewMenu()
-// 	FileMenu := AppMenu.AddSubmenu("File")
-// 	FileMenu.AddText("Import", keys.CmdOrCtrl("o"), func(_ *menu.CallbackData) { app.LoadFile(app.ctx, db) })
-// 	FileMenu.AddSeparator()
-// 	FileMenu.AddText("Categorize", keys.CmdOrCtrl("c"), func(_ *menu.CallbackData) { app.CategorizeUncategorized(app.ctx, db) })
-// 	FileMenu.AddSeparator()
-// 	FileMenu.AddText("Quit", keys.CmdOrCtrl("q"), func(_ *menu.CallbackData) {
-// 		runtime.Quit(app.ctx)
-// 	})
-// 	return AppMenu
-// }
+func setupMenu(app *App, db *db.Db) *menu.Menu {
+	AppMenu := menu.NewMenu()
+	FileMenu := AppMenu.AddSubmenu("File")
+	FileMenu.AddText("Import", keys.CmdOrCtrl("o"), func(_ *menu.CallbackData) { app.LoadFile(app.ctx, db) })
+	FileMenu.AddSeparator()
+	FileMenu.AddText("Categorize", keys.CmdOrCtrl("c"), func(_ *menu.CallbackData) { app.CategorizeUncategorized(app.ctx, db) })
+	FileMenu.AddSeparator()
+	FileMenu.AddText("Quit", keys.CmdOrCtrl("q"), func(_ *menu.CallbackData) {
+		runtime.Quit(app.ctx)
+	})
+	return AppMenu
+}

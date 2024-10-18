@@ -46,6 +46,20 @@ func (tc *TransactionCreate) SetNillableAmount(f *float64) *TransactionCreate {
 	return tc
 }
 
+// SetIgnored sets the "ignored" field.
+func (tc *TransactionCreate) SetIgnored(b bool) *TransactionCreate {
+	tc.mutation.SetIgnored(b)
+	return tc
+}
+
+// SetNillableIgnored sets the "ignored" field if the given value is not nil.
+func (tc *TransactionCreate) SetNillableIgnored(b *bool) *TransactionCreate {
+	if b != nil {
+		tc.SetIgnored(*b)
+	}
+	return tc
+}
+
 // SetCategoryID sets the "category_id" field.
 func (tc *TransactionCreate) SetCategoryID(i int) *TransactionCreate {
 	tc.mutation.SetCategoryID(i)
@@ -143,6 +157,10 @@ func (tc *TransactionCreate) defaults() {
 		v := transaction.DefaultAmount
 		tc.mutation.SetAmount(v)
 	}
+	if _, ok := tc.mutation.Ignored(); !ok {
+		v := transaction.DefaultIgnored
+		tc.mutation.SetIgnored(v)
+	}
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -155,6 +173,9 @@ func (tc *TransactionCreate) check() error {
 	}
 	if _, ok := tc.mutation.Amount(); !ok {
 		return &ValidationError{Name: "amount", err: errors.New(`ent: missing required field "Transaction.amount"`)}
+	}
+	if _, ok := tc.mutation.Ignored(); !ok {
+		return &ValidationError{Name: "ignored", err: errors.New(`ent: missing required field "Transaction.ignored"`)}
 	}
 	return nil
 }
@@ -199,6 +220,10 @@ func (tc *TransactionCreate) createSpec() (*Transaction, *sqlgraph.CreateSpec) {
 	if value, ok := tc.mutation.Amount(); ok {
 		_spec.SetField(transaction.FieldAmount, field.TypeFloat64, value)
 		_node.Amount = value
+	}
+	if value, ok := tc.mutation.Ignored(); ok {
+		_spec.SetField(transaction.FieldIgnored, field.TypeBool, value)
+		_node.Ignored = value
 	}
 	if nodes := tc.mutation.CategoryIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

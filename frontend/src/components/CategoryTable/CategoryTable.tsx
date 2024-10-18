@@ -2,6 +2,7 @@
 /* eslint-disable promise/catch-or-return */
 /* eslint-disable no-nested-ternary */
 /* eslint-disable camelcase */
+import DeleteIcon from '@mui/icons-material/Delete';
 import {
   useMutation,
   useQuery,
@@ -9,18 +10,18 @@ import {
 } from '@tanstack/react-query';
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-material.css";
-import debounce from 'lodash.debounce';
 
 import { ColDef } from "ag-grid-community";
 import { AgGridReact } from 'ag-grid-react';
 
-import { useCallback, useMemo, useReducer, useRef } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import { CreateCategory, DeleteCategory, GetCategoriesByType, GetCategoryByID, UpdateCategory } from "../../../wailsjs/go/db/Db.js";
 import { ent } from "../../../wailsjs/go/models.js";
 
+import { IconButton, Tooltip } from '@mui/material';
+import { formatCurrency } from '../../Utils/Formatters';
+import { createPinnedCellPlaceholder, isEmptyPinnedCell, isRowDataCompleted } from '../../Utils/TableHelpers';
 import './CategoryTable.css';
-import { isRowDataCompleted, createPinnedCellPlaceholder, isEmptyPinnedCell, validatePositiveAmount, validateRequired, validateColour } from '../../Utils/TableHelpers'
-import { formatCurrency } from '../../Utils/Formatters'
 
 // database management functions
 
@@ -125,6 +126,29 @@ const CategoryTable = ({ type }: { type: string }) => {
   const colDefs = useMemo<ColDef<ent.Category>[]>(() => (
     [
       {
+        cellRenderer: (props: any) => {
+          if (props.node.rowPinned == 'top') return
+          return <Tooltip title="Delete">
+              <IconButton
+                color="error"
+                onClick={() => {
+                  deleteCategory(props.data.id);
+                  props.api.applyTransaction({
+                    remove: [props.node.data]
+                  });
+                }}
+              >
+                <DeleteIcon />
+              </IconButton>
+            </Tooltip>
+        },
+        suppressHeaderFilterButton: true,
+        suppressAutoSize: true,
+        editable: false,
+        minWidth: 50,
+        maxWidth: 50,
+      },
+      {
         field: "name",
         headerName: "Name",
         cellStyle: { 'textAlign': "left" },
@@ -200,6 +224,7 @@ const CategoryTable = ({ type }: { type: string }) => {
   return (
     <div className="ag-theme-material-dark">
       <AgGridReact
+        suppressScrollOnNewData={true}
         pinnedTopRowData={[inputRow]}
         onCellEditingStopped={onCellEditingStopped}
         ref={gridRef}

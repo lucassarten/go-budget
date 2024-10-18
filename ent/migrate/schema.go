@@ -29,6 +29,7 @@ var (
 		{Name: "time", Type: field.TypeInt64},
 		{Name: "description", Type: field.TypeString},
 		{Name: "amount", Type: field.TypeFloat64, Default: 0},
+		{Name: "ignored", Type: field.TypeBool, Default: false},
 		{Name: "category_id", Type: field.TypeInt, Nullable: true},
 		{Name: "reimbursed_by_id", Type: field.TypeInt, Unique: true, Nullable: true},
 	}
@@ -40,13 +41,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "transactions_categories_transactions",
-				Columns:    []*schema.Column{TransactionsColumns[4]},
+				Columns:    []*schema.Column{TransactionsColumns[5]},
 				RefColumns: []*schema.Column{CategoriesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "transactions_transactions_reimbursed_by_transaction",
-				Columns:    []*schema.Column{TransactionsColumns[5]},
+				Columns:    []*schema.Column{TransactionsColumns[6]},
 				RefColumns: []*schema.Column{TransactionsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},

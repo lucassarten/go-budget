@@ -1,7 +1,7 @@
 package models
 
 import (
-	dbPkg "go-budget/internal/db"
+	"go-budget/ent"
 	"sort"
 
 	"github.com/agnivade/levenshtein"
@@ -10,13 +10,13 @@ import (
 
 var THRESHOLD = 10
 
-func Categorize(transactions []dbPkg.Transaction, toClassify []dbPkg.Transaction) ([]dbPkg.Transaction, int) {
+func Categorize(transactions []*ent.Transaction, toClassify []*ent.Transaction) ([]*ent.Transaction, int) {
 	// Split into expenses and income
-	expenses := lo.Filter(transactions, func(transaction dbPkg.Transaction, idx int) bool {
+	expenses := lo.Filter(transactions, func(transaction *ent.Transaction, idx int) bool {
 		return transaction.Amount < 0
 	})
 
-	income := lo.Filter(transactions, func(transaction dbPkg.Transaction, idx int) bool {
+	income := lo.Filter(transactions, func(transaction *ent.Transaction, idx int) bool {
 		return transaction.Amount >= 0
 	})
 	// Track number of categorized transactions
@@ -24,14 +24,14 @@ func Categorize(transactions []dbPkg.Transaction, toClassify []dbPkg.Transaction
 	// Categorize
 	for i, t := range toClassify {
 		var ranks []Distance
-		var searchList []dbPkg.Transaction
+		var searchList []*ent.Transaction
 		// Filtering out the transaction being searched for from the search list
 		if t.Amount > 0 {
-			searchList = lo.Filter(income, func(incomeTransaction dbPkg.Transaction, idx int) bool {
+			searchList = lo.Filter(income, func(incomeTransaction *ent.Transaction, idx int) bool {
 				return incomeTransaction != t
 			})
 		} else {
-			searchList = lo.Filter(expenses, func(expenseTransaction dbPkg.Transaction, idx int) bool {
+			searchList = lo.Filter(expenses, func(expenseTransaction *ent.Transaction, idx int) bool {
 				return expenseTransaction != t
 			})
 		}
@@ -48,11 +48,11 @@ func Categorize(transactions []dbPkg.Transaction, toClassify []dbPkg.Transaction
 }
 
 type Distance struct {
-	Transaction dbPkg.Transaction
+	Transaction *ent.Transaction
 	Distance    int
 }
 
-func RankLavenstein(description string, transactions []dbPkg.Transaction) []Distance {
+func RankLavenstein(description string, transactions []*ent.Transaction) []Distance {
 	ranks := make([]Distance, len(transactions))
 	// Calculate distance for each transaction
 	for i, transaction := range transactions {

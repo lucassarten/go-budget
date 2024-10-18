@@ -1,3 +1,20 @@
+export namespace db {
+	
+	export class Db {
+	
+	
+	    static createFrom(source: any = {}) {
+	        return new Db(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	
+	    }
+	}
+
+}
+
 export namespace ent {
 	
 	export class TransactionEdges {
@@ -37,6 +54,7 @@ export namespace ent {
 	    time?: number;
 	    description?: string;
 	    amount?: number;
+	    ignored?: boolean;
 	    category_id?: number;
 	    reimbursed_by_id?: number;
 	    edges: TransactionEdges;
@@ -51,6 +69,7 @@ export namespace ent {
 	        this.time = source["time"];
 	        this.description = source["description"];
 	        this.amount = source["amount"];
+	        this.ignored = source["ignored"];
 	        this.category_id = source["category_id"];
 	        this.reimbursed_by_id = source["reimbursed_by_id"];
 	        this.edges = this.convertValues(source["edges"], TransactionEdges);

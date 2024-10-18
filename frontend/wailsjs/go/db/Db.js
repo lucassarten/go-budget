@@ -10,8 +10,8 @@ export function CreateCategory(arg1, arg2, arg3, arg4, arg5) {
   return window['go']['db']['Db']['CreateCategory'](arg1, arg2, arg3, arg4, arg5);
 }
 
-export function CreateTransaction(arg1, arg2, arg3, arg4) {
-  return window['go']['db']['Db']['CreateTransaction'](arg1, arg2, arg3, arg4);
+export function CreateTransaction(arg1, arg2, arg3, arg4, arg5) {
+  return window['go']['db']['Db']['CreateTransaction'](arg1, arg2, arg3, arg4, arg5);
 }
 
 export function DeleteCategory(arg1) {
@@ -66,6 +66,6 @@ export function UpdateCategory(arg1, arg2, arg3, arg4, arg5, arg6) {
   return window['go']['db']['Db']['UpdateCategory'](arg1, arg2, arg3, arg4, arg5, arg6);
 }
 
-export function UpdateTransaction(arg1, arg2, arg3, arg4, arg5, arg6) {
-  return window['go']['db']['Db']['UpdateTransaction'](arg1, arg2, arg3, arg4, arg5, arg6);
+export function UpdateTransaction(arg1, arg2, arg3, arg4, arg5, arg6, arg7) {
+  return window['go']['db']['Db']['UpdateTransaction'](arg1, arg2, arg3, arg4, arg5, arg6, arg7);
 }

@@ -84,6 +84,20 @@ func (tu *TransactionUpdate) AddAmount(f float64) *TransactionUpdate {
 	return tu
 }
 
+// SetIgnored sets the "ignored" field.
+func (tu *TransactionUpdate) SetIgnored(b bool) *TransactionUpdate {
+	tu.mutation.SetIgnored(b)
+	return tu
+}
+
+// SetNillableIgnored sets the "ignored" field if the given value is not nil.
+func (tu *TransactionUpdate) SetNillableIgnored(b *bool) *TransactionUpdate {
+	if b != nil {
+		tu.SetIgnored(*b)
+	}
+	return tu
+}
+
 // SetCategoryID sets the "category_id" field.
 func (tu *TransactionUpdate) SetCategoryID(i int) *TransactionUpdate {
 	tu.mutation.SetCategoryID(i)
@@ -216,6 +230,9 @@ func (tu *TransactionUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if value, ok := tu.mutation.AddedAmount(); ok {
 		_spec.AddField(transaction.FieldAmount, field.TypeFloat64, value)
 	}
+	if value, ok := tu.mutation.Ignored(); ok {
+		_spec.SetField(transaction.FieldIgnored, field.TypeBool, value)
+	}
 	if tu.mutation.CategoryCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -347,6 +364,20 @@ func (tuo *TransactionUpdateOne) SetNillableAmount(f *float64) *TransactionUpdat
 // AddAmount adds f to the "amount" field.
 func (tuo *TransactionUpdateOne) AddAmount(f float64) *TransactionUpdateOne {
 	tuo.mutation.AddAmount(f)
+	return tuo
+}
+
+// SetIgnored sets the "ignored" field.
+func (tuo *TransactionUpdateOne) SetIgnored(b bool) *TransactionUpdateOne {
+	tuo.mutation.SetIgnored(b)
+	return tuo
+}
+
+// SetNillableIgnored sets the "ignored" field if the given value is not nil.
+func (tuo *TransactionUpdateOne) SetNillableIgnored(b *bool) *TransactionUpdateOne {
+	if b != nil {
+		tuo.SetIgnored(*b)
+	}
 	return tuo
 }
 
@@ -511,6 +542,9 @@ func (tuo *TransactionUpdateOne) sqlSave(ctx context.Context) (_node *Transactio
 	}
 	if value, ok := tuo.mutation.AddedAmount(); ok {
 		_spec.AddField(transaction.FieldAmount, field.TypeFloat64, value)
+	}
+	if value, ok := tuo.mutation.Ignored(); ok {
+		_spec.SetField(transaction.FieldIgnored, field.TypeBool, value)
 	}
 	if tuo.mutation.CategoryCleared() {
 		edge := &sqlgraph.EdgeSpec{

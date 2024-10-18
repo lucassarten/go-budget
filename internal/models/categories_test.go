@@ -9,46 +9,46 @@ import (
 
 func TestCategorize1(t *testing.T) {
 	transactions := []dbPkg.Transaction{
-		{Description: "groceries", Category: "Groceries", Amount: -1},
-		{Description: " Weekly Rent", Category: "Rent", Amount: -1},
+		{Description: "groceries", CategoryID: 0, Amount: -1},
+		{Description: " Weekly Rent", CategoryID: 1, Amount: -1},
 	}
 	toClassify := []dbPkg.Transaction{
-		{Description: "groceries", Category: "", Amount: -1},
+		{Description: "groceries", CategoryID: -1, Amount: -1},
 	}
 	categorized, _ := Categorize(transactions, toClassify)
-	assert.Equal(t, "Groceries", categorized[0].Category)
+	assert.Equal(t, 0, categorized[0].CategoryID)
 }
 
 func TestCategorize2(t *testing.T) {
 	transactions := []dbPkg.Transaction{
-		{Description: "groceries", Category: "Groceries", Amount: -1},
-		{Description: " Weekly Rent", Category: "Rent", Amount: -1},
+		{Description: "groceries", CategoryID: 0, Amount: -1},
+		{Description: " Weekly Rent", CategoryID: 1, Amount: -1},
 	}
 	toClassify := []dbPkg.Transaction{
-		{Description: " Weekly Rent", Category: "", Amount: -1},
+		{Description: " Weekly Rent", CategoryID: -1, Amount: -1},
 	}
 	categorized, _ := Categorize(transactions, toClassify)
-	assert.Equal(t, "Rent", categorized[0].Category)
+	assert.Equal(t, 1, categorized[0].CategoryID)
 }
 
 func TestCategorize3(t *testing.T) {
 	transactions := []dbPkg.Transaction{
-		{Description: "T/f To Mastercard", Category: "Debt", Amount: -1},
+		{Description: "T/f To Mastercard", CategoryID: 2, Amount: -1},
 	}
 	toClassify := []dbPkg.Transaction{
-		{Description: "T/f To Mastercard (123)", Category: "", Amount: -1},
+		{Description: "T/f To Mastercard (123)", CategoryID: -1, Amount: -1},
 	}
 	categorized, _ := Categorize(transactions, toClassify)
-	assert.Equal(t, "Debt", categorized[0].Category)
+	assert.Equal(t, 2, categorized[0].CategoryID)
 }
 
 func TestCategorize5(t *testing.T) {
 	transactions := []dbPkg.Transaction{
-		{Description: "T/f To Mastercard (123)", Category: "Debt", Amount: -1},
+		{Description: "T/f To Mastercard (123)", CategoryID: 2, Amount: -1},
 	}
 	toClassify := []dbPkg.Transaction{
-		{Description: "T/f To Mastercard", Category: "", Amount: -1},
+		{Description: "T/f To Mastercard", CategoryID: -1, Amount: -1},
 	}
 	categorized, _ := Categorize(transactions, toClassify)
-	assert.Equal(t, "Debt", categorized[0].Category)
+	assert.Equal(t, 2, categorized[0].CategoryID)
 }

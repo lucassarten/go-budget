@@ -6,7 +6,7 @@ export function Close():Promise<void>;
 
 export function CreateCategory(arg1:string,arg2:number,arg3:number,arg4:string,arg5:string):Promise<ent.Category>;
 
-export function CreateTransaction(arg1:number,arg2:string,arg3:number,arg4:number):Promise<ent.Transaction>;
+export function CreateTransaction(arg1:number,arg2:string,arg3:number,arg4:number,arg5:boolean):Promise<ent.Transaction>;
 
 export function DeleteCategory(arg1:number):Promise<void>;
 
@@ -34,4 +34,4 @@ export function Open():Promise<void>;
 
 export function UpdateCategory(arg1:number,arg2:any,arg3:any,arg4:any,arg5:any,arg6:any):Promise<ent.Category>;
 
-export function UpdateTransaction(arg1:number,arg2:any,arg3:any,arg4:any,arg5:any,arg6:any):Promise<ent.Transaction>;
+export function UpdateTransaction(arg1:number,arg2:any,arg3:any,arg4:any,arg5:any,arg6:any,arg7:any):Promise<ent.Transaction>;

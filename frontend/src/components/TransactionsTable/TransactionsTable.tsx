@@ -4,13 +4,12 @@
 /* eslint-disable camelcase */
 import DeleteIcon from '@mui/icons-material/Delete';
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import debounce from "lodash.debounce";
-import Draggable from "react-draggable";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-material.css";
+import Draggable from "react-draggable";
 
 import { AgGridReact } from 'ag-grid-react';
-import { useCallback, useMemo, useReducer, useRef, useState } from "react";
+import { useCallback, useMemo, useRef } from "react";
 
 import { Box, Button, IconButton, Popover, Tooltip } from "@mui/material";
 import { ColDef } from "ag-grid-community";
@@ -25,8 +24,8 @@ import {
 import { ent } from "../../../wailsjs/go/models";
 import TransactionSearch from '../TransactionSearch/TransactionSearch';
 
-import { isRowDataCompleted, createPinnedCellPlaceholder, isEmptyPinnedCell, validateDate, validateAmount, validateRequired } from '../../Utils/TableHelpers'
-import { convertToUnixTimestamp, formatDate, formatCurrency } from  '../../Utils/Formatters'
+import { convertToUnixTimestamp, formatCurrency, formatDate } from '../../Utils/Formatters';
+import { createPinnedCellPlaceholder, isEmptyPinnedCell, isRowDataCompleted } from '../../Utils/TableHelpers';
 
 // database management functions
 
@@ -45,6 +44,7 @@ function useCreateTransaction(type: string) {
         String(transaction.description),
         Number(transaction.amount),
         Number(transaction.category_id),
+        Boolean(transaction.ignored),
       );
     },
     //client side optimistic update
@@ -96,7 +96,8 @@ function useUpdateTransaction(type: string) {
         String(transaction.description),
         Number(transaction.amount),
         Number(transaction.category_id),
-        Number(transaction.reimbursed_by_id)
+        Number(transaction.reimbursed_by_id),
+        Boolean(transaction.ignored)
       );
     },
     // client side optimistic update
@@ -156,9 +157,14 @@ const TransactionsTable = ({ type }: { type: string }) => {
     useDeleteTransaction();
 
   const filteredTransactions = useMemo(() => {
+    const updatedTransactions = fetchedTransactions.map((transaction) => ({
+      ...transaction,
+      ignored: transaction.ignored === undefined ? false : transaction.ignored,
+    }));
+
     return type === "Income"
-      ? fetchedTransactions.filter((transaction) => Number(transaction.amount) > 0)
-      : fetchedTransactions.filter((transaction) => Number(transaction.amount) < 0);
+      ? updatedTransactions.filter((transaction) => Number(transaction.amount) > 0)
+      : updatedTransactions.filter((transaction) => Number(transaction.amount) < 0);
   }, [type, fetchedTransactions]);
 
   const categoryIds = useMemo(() => (
@@ -225,15 +231,6 @@ const TransactionsTable = ({ type }: { type: string }) => {
                               } else {
                                 props.data.reimbursed_by_id = null;
                               }
-                              // const reimbursedByTransaction =
-                              //   fetchedTransactions.find(
-                              //     (transaction) =>
-                              //       transaction.id === props.data.reimbursed_by_id
-                              //   );
-                              // if (reimbursedByTransaction) {
-                              //   reimbursedByTransaction.category_id = "🔁 Reimbursement";
-                              //   updateTransaction(reimbursedByTransaction);
-                              // }
                               updateTransaction(props.data);
                               filteredTransactions.forEach(
                                 (transactionItr, idx) => {
@@ -260,6 +257,16 @@ const TransactionsTable = ({ type }: { type: string }) => {
         editable: false,
         minWidth: 200,
         maxWidth: 200,
+      },
+      {
+        field: "ignored",
+        headerName: "Ignored",
+        cellDataType: 'boolean',
+        suppressHeaderFilterButton: true,
+        //valueFormatter: params => params.value == null ? false : params.value,
+        suppressAutoSize: true,
+        minWidth: 100,
+        maxWidth: 100,
       },
       {
         field: "time",
@@ -316,8 +323,8 @@ const TransactionsTable = ({ type }: { type: string }) => {
         cellRenderer: (params: any) =>
           isEmptyPinnedCell(params)
             ? 'Category...'
-            : fetchedCategories.find(cat => cat.id === params.value)?.name || 'unknown',
-        valueFormatter: params => fetchedCategories.find(cat => cat.id === params.value)?.name || 'unknown',
+            : fetchedCategories.find(cat => cat.id === params.value)?.name || '❗ Uncategorized',
+        valueFormatter: params => fetchedCategories.find(cat => cat.id === params.value)?.name || '❗ Uncategorized',
         valueParser: params => fetchedCategories.find(cat => cat.name === params.newValue)?.id
       }
     ]), [categoryIds]);
@@ -351,21 +358,12 @@ const TransactionsTable = ({ type }: { type: string }) => {
     }
   }
 
-  const getRowStyle = (params: any) => {
-    if (params.data.selected === true) {
-      return {
-        'background-color': '#455A64',
-        'color': '#9AA3A8'
-      }
-    }
-  };
-
   return (
     <div className="ag-theme-material-dark">
       <AgGridReact
+        suppressScrollOnNewData={true}
         pinnedTopRowData={[inputRow]}
         onCellEditingStopped={onCellEditingStopped}
-        getRowStyle={getRowStyle}
         ref={gridRef}
         rowData={filteredTransactions}
         columnDefs={colDefs}
