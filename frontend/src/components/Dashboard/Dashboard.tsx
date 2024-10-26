@@ -11,8 +11,8 @@ import { Bar, Pie } from 'react-chartjs-2';
 import { GetCategories, GetTransactions } from "../../../wailsjs/go/db/Db";
 import { ent } from "../../../wailsjs/go/models";
 
-import { formatCurrency, formatDate } from '../../Utils/Formatters';
-import { IntervalValue, PeriodValue, TimeInterval, TimePeriod } from '../../Utils/Types';
+import { formatCurrency, formatDate, dateToUnix } from '../../Utils/Formatters';
+import { IntervalValue, PeriodValue, TimeInterval, TimePeriod, getIntervalFactor } from '../../Utils/Types';
 import CategorySelector from '../Selectors/CategorySelector';
 import IntervalSelector from '../Selectors/IntervalSelector';
 import TimePeriodSelector from '../Selectors/TimePeriodSelector';
@@ -358,6 +358,31 @@ function getTimeIntervalFactor(timeInterval: TimeInterval): number {
   return timeIntervalLength / (1000 * 60 * 60 * 24 * 30.5); // Assuming a month has 30.5 days
 }
 
+function calculateAverageExpenses(transactions: ent.Transaction[], categories: ent.Category[], period: TimePeriod, interval: TimeInterval) {
+  let grandTotal = 0;
+  const categoryTotals: { [categoryName: string]: number } = categories
+    .filter((category) => category.name) // Ensure category.name is defined
+    .reduce((acc, category) => {
+      const categoryTransactions = transactions.filter(
+        (transaction) => transaction.category_id === category.id
+      );
+
+      const total = categoryTransactions.reduce(
+        (acc, transaction) => acc + Math.abs(Number(transaction.amount)),
+        0
+      );
+
+
+      const average = total / getIntervalFactor(period, interval.interval);
+      grandTotal += average;
+      // Assign the category name as a key with the average as the value
+      acc[category.name as string] = average;
+      return acc;
+    }, {} as { [categoryName: string]: number });
+  return {categoryTotals, grandTotal};
+}
+
+
 function Dashboard() {
   const [transactions, setTransactions] = useState<ent.Transaction[]>([]);
   const [transactionsInTimeRange, setTransactionsInTimeRange] = useState<ent.Transaction[]>([]);
@@ -385,6 +410,16 @@ function Dashboard() {
     useState<ent.Category>();
   const [selectedCategoryIncome, setSelectedCategoryIncome] =
     useState<ent.Category>();
+  const [selectedInterval, setSelectedInterval] = useState<TimeInterval>({
+    startDate: GetDefaultPeriod().startDate,
+    endDate: GetDefaultPeriod().endDate,
+    interval: IntervalValue.Week,
+  });
+  const [averageExpenses, setAverageExpenses] = useState<{ [category: string]: number }>({});
+  const [grandTotal, setGrandTotal] = useState<number>(0);
+
+  console.log("interval", selectedInterval.endDate)
+  console.log("range", timeRange.endDate)
 
   useEffect(() => {
     // get transactions from db between time period
@@ -434,6 +469,15 @@ function Dashboard() {
     }
   }, [categories]);
 
+  useEffect(() => {
+    // Calculate average expenses when selectedInterval or selectedPeriod changes
+    if (categories.length && transactions.length) {
+      const { categoryTotals, grandTotal } = calculateAverageExpenses(transactionsExpense, categoriesExpense, timeRange, selectedInterval);
+      setAverageExpenses(categoryTotals);
+      setGrandTotal(grandTotal);
+    }
+  }, [selectedInterval, transactionsInTimeRange, categories]);
+
   // Split transactions into expense and income
   const transactionsExpense = transactionsInTimeRange.filter(
     (transaction) => Number(transaction.amount) < 0
@@ -459,11 +503,7 @@ function Dashboard() {
             {IncomeEarningSavingsComparison(transactionsInTimeRange)}
           </div>
           <div className="pie-chart-container">
-            {categoryPieChart(
-              'Expense',
-              categoriesExpense,
-              transactionsExpense
-            )}
+            {categoryPieChart('Expense', categoriesExpense, transactionsExpense)}
           </div>
           <div className="pie-chart-container">
             {categoryPieChart('Income', categoriesIncome, transactionsIncome)}
@@ -505,6 +545,35 @@ function Dashboard() {
             </div>
           </div>
         </div>
+      </div>
+      <div className="full-column-table">
+        <div className="time-period-selector-container">
+          <div className="average-expenses-label">
+            <h4>Average expenses per:</h4>
+          </div>
+          <IntervalSelector onIntervalChange={setSelectedInterval} />
+        </div>
+        <table className="average-expense-table">
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th>Average Expense <br></br>{(dateToUnix(selectedInterval.endDate) - dateToUnix(selectedInterval.startDate)) > (dateToUnix(timeRange.endDate) - dateToUnix(timeRange.startDate)) ? `(projected)` : ``}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {categories.map((category) => (
+              <tr key={category.id}>
+                <td>{category.name}</td>
+                <td>{category.name && formatCurrency(averageExpenses[category.name] || 0)}</td>
+              </tr>
+            ))}
+            <br></br>
+            <tr>
+              <td><strong>Total</strong></td>
+              <td><strong>{formatCurrency(grandTotal)}</strong></td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   );
