@@ -12,9 +12,9 @@ import { useEffect, useState } from 'react';
 import { GetCategoriesByType, GetTransactions } from '../../../wailsjs/go/db/Db';
 import { ent } from "../../../wailsjs/go/models";
 import { formatCurrency, formatDate } from '../../Utils/Formatters';
+import { PeriodValue, TimePeriod } from '../../Utils/Types';
 import { GetDefaultPeriod } from '../Dashboard/Dashboard';
 import TimePeriodSelector from '../Selectors/TimePeriodSelector';
-import { PeriodValue, TimePeriod } from '../../Utils/Types';
 
 function getLastPeriod(periodStart: Date, periodEnd: Date, period: PeriodValue): TimePeriod {
   switch (period) {
@@ -331,21 +331,23 @@ function Statistics() {
     endDate: GetDefaultPeriod().endDate,
     period: PeriodValue.LastWeek,
   });
+  const [firstDate, setFirstDate] = useState<number>(0)
+
   useEffect(() => {
     // get transactions from db between time period
     GetTransactions().then((resp: ent.Transaction[]) => {
+      // remove ignored transactions from list
+      resp = resp.filter((transaction) => !transaction.ignored);
       // calc reimbursements
       resp.forEach((transaction) => {
-        if (transaction.reimbursed_by_id) {
-          const reimbursedTransaction = resp.find((item) => item.id === transaction.reimbursed_by_id);
-          if (reimbursedTransaction) {
-            transaction.amount = Math.min(Number(transaction.amount) + Number(reimbursedTransaction.amount), 0);
-          }
+        if (transaction.amount && transaction.amount < 0 && transaction.edges.reimbursed_by_transaction) {
+          transaction.amount = Math.min(Number(transaction.amount) + Math.abs(Number(transaction.edges.reimbursed_by_transaction.amount)), 0);
         }
       });
-      // remove reimbursed and ignored transactions from list
-      resp = resp.filter((transaction) => !transaction.reimbursed_by_id && !transaction.ignored);
+      // remove reimbursement transactions
+      resp = resp.filter((transaction) => (transaction.amount && transaction.amount < 0) || (transaction.amount && transaction.amount > 0 && !transaction.edges.reimbursed_by_transaction));
       setTransactionsAll(resp);
+      setFirstDate(Math.min(...resp.map(t => t.time || firstDate)));
     });
     // get categories from db
     GetCategoriesByType("Income").then((resp: ent.Category[]) => {
@@ -361,9 +363,13 @@ function Statistics() {
 
   return (
     <div className="statistics-container">
-      <div className="time-period-selector-container-statistics">
-        <TimePeriodSelector onTimePeriodChange={setTimePeriod} />
-      </div>
+
+      {firstDate === 0 ?
+        <></> :
+        <div className="time-period-selector-container-statistics">
+          <TimePeriodSelector onTimePeriodChange={setTimePeriod} firstDate={firstDate} />
+        </div>
+      }
       <div className="statistics-summary-container">
         {StatisticsSummary(transactionsAll, timePeriod)}
       </div>

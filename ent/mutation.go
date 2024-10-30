@@ -1065,7 +1065,7 @@ func (m *TransactionMutation) CategoryID() (r int, exists bool) {
 // OldCategoryID returns the old "category_id" field's value of the Transaction entity.
 // If the Transaction object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *TransactionMutation) OldCategoryID(ctx context.Context) (v int, err error) {
+func (m *TransactionMutation) OldCategoryID(ctx context.Context) (v *int, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldCategoryID is only allowed on UpdateOne operations")
 	}

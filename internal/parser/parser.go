@@ -18,11 +18,11 @@ import (
 // specific phrases to remove, these rows aren't dropped just cleaned for the below strings
 var remove = regexp.MustCompile(`;Ref:|;Particulars:|;Balance:|;`)
 
-func ImportFile(db *dbPkg.Db, fileName string, typeStr string) error {
+func ImportFile(db *dbPkg.Db, fileName string, typeStr string) (int, int, error) {
 	// Open the CSV file
 	file, err := os.Open(fileName)
 	if err != nil {
-		return err
+		return 0, 0, err
 	}
 	defer file.Close()
 
@@ -33,11 +33,10 @@ func ImportFile(db *dbPkg.Db, fileName string, typeStr string) error {
 	// Read all the records
 	records, err := reader.ReadAll()
 	if err != nil {
-		return err
+		return 0, 0, err
 	}
 
-	// Initialize content slice
-	var content [][]string
+	var transactions []*ent.Transaction
 
 	// Drop header row
 	records = records[1:]
@@ -47,89 +46,83 @@ func ImportFile(db *dbPkg.Db, fileName string, typeStr string) error {
 		if len(records[0]) == 3 {
 			// Format columns
 			for _, row := range records {
-				content = append(content, []string{
-					strings.TrimSpace(row[0]),
-					strings.TrimSpace(row[1]),
-					strings.TrimSpace(row[2]),
+				// Convert date to unix epoch f 23/04/24
+				date, err := time.Parse("02/01/06", row[0])
+				if err != nil {
+					return 0, 0, err
+				}
+				// Parse amount
+				amount, err := strconv.ParseFloat(row[2], 64)
+				if err != nil {
+					return 0, 0, err
+				}
+				transactions = append(transactions, &ent.Transaction{
+					Time:        date.UnixMilli(),
+					Description: strings.TrimSpace(row[1]),
+					Amount:      amount,
 				})
 			}
 		} else if len(records[0]) == 5 {
 			// Format columns
 			for _, row := range records {
-				content = append(content, []string{
-					strings.TrimSpace(row[0]),
-					strings.TrimSpace(row[2] + row[3]),
-					strings.TrimSpace(row[1]),
+				// Convert date to unix epoch f 23/04/24
+				date, err := time.Parse("02/01/06", row[0])
+				if err != nil {
+					return 0, 0, err
+				}
+				// Parse amount
+				amount, err := strconv.ParseFloat(row[1], 64)
+				if err != nil {
+					return 0, 0, err
+				}
+				transactions = append(transactions, &ent.Transaction{
+					Time:        date.UnixMilli(),
+					Description: strings.TrimSpace(row[2] + row[3]),
+					Amount:      amount,
 				})
 			}
 		} else {
-			return nil
-		}
-
-		// Convert date to unix epoch f 23/04/24
-		for _, row := range content {
-			date, err := time.Parse("02/01/06", row[0])
-			if err != nil {
-				return err
-			}
-			row[0] = string(date.Unix())
+			return 0, 0, nil
 		}
 	} else if typeStr == "KiwiBank" {
 		// Format columns
 		for _, row := range records {
-			content = append(content, []string{
-				strings.TrimSpace(row[1]),
-				strings.TrimSpace(row[2]),
-				strings.TrimSpace(row[14]),
-			})
-		}
-
-		// Convert to date format d-m-yyyy, data is in format dd-mm-yyyy
-		for _, row := range content {
-			date, err := time.Parse("2-1-2006", row[0])
+			// Convert date to unix epoch f 23/04/24
+			date, err := time.Parse("2-1-2006", row[1])
 			if err != nil {
-				return err
+				return 0, 0, err
 			}
-			row[0] = string(date.Unix())
+			// Parse amount
+			amount, err := strconv.ParseFloat(row[14], 64)
+			if err != nil {
+				return 0, 0, err
+			}
+			transactions = append(transactions, &ent.Transaction{
+				Time:        date.UnixMilli(),
+				Description: strings.TrimSpace(row[2]),
+				Amount:      amount,
+			})
 		}
 	}
 
 	// Remove unwanted strings
-	var filteredContent [][]string
-	for _, row := range content {
-		filteredContent = append(filteredContent, []string{row[0], remove.ReplaceAllString(row[1], ""), row[2]})
+	for i := range transactions {
+		transactions[i].Description = remove.ReplaceAllString(transactions[i].Description, "")
 	}
 
 	// Attempt to auto categorize
-	toCategorize, err := db.GetTransactions()
+	existingTransactions, err := db.GetTransactions()
 	if err != nil {
-		return err
+		return 0, 0, err
 	}
-	// Build mock list of Transactions
-	transactions := make([]*ent.Transaction, len(filteredContent))
-	for i, row := range filteredContent {
-		amount, err := strconv.ParseFloat(row[2], 64)
-		if err != nil {
-			return err
-		}
-		time, err := strconv.ParseInt(row[0], 10, 64)
-		if err != nil {
-			return err
-		}
-		transactions[i] = &ent.Transaction{
-			Time:        time,
-			Description: row[1],
-			Amount:      amount,
-		}
-	}
-	categorized, _ := models.Categorize(toCategorize, transactions)
+	categorized, numCategorized := models.Categorize(existingTransactions, transactions)
 
 	// Insert into database
-	for _, row := range categorized {
-		_, err := db.CreateTransaction(row.Time, row.Description, row.Amount, row.CategoryID, false)
+	for _, t := range categorized {
+		_, err := db.CreateTransaction(t.Time, t.Description, t.Amount, t.CategoryID, false)
 		if err != nil {
-			return err
+			return 0, 0, err
 		}
 	}
-	return nil
+	return len(categorized), numCategorized, nil
 }

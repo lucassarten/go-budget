@@ -26,7 +26,7 @@ type Transaction struct {
 	// Ignored holds the value of the "ignored" field.
 	Ignored bool `json:"ignored,omitempty"`
 	// CategoryID holds the value of the "category_id" field.
-	CategoryID int `json:"category_id,omitempty"`
+	CategoryID *int `json:"category_id,omitempty"`
 	// ReimbursedByID holds the value of the "reimbursed_by_id" field.
 	ReimbursedByID *int `json:"reimbursed_by_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -130,7 +130,8 @@ func (t *Transaction) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field category_id", values[i])
 			} else if value.Valid {
-				t.CategoryID = int(value.Int64)
+				t.CategoryID = new(int)
+				*t.CategoryID = int(value.Int64)
 			}
 		case transaction.FieldReimbursedByID:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -197,8 +198,10 @@ func (t *Transaction) String() string {
 	builder.WriteString("ignored=")
 	builder.WriteString(fmt.Sprintf("%v", t.Ignored))
 	builder.WriteString(", ")
-	builder.WriteString("category_id=")
-	builder.WriteString(fmt.Sprintf("%v", t.CategoryID))
+	if v := t.CategoryID; v != nil {
+		builder.WriteString("category_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteString(", ")
 	if v := t.ReimbursedByID; v != nil {
 		builder.WriteString("reimbursed_by_id=")

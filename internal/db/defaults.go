@@ -9,7 +9,7 @@ var defaultCategoriesExpense = []Category{
 	{Name: "🏠 Household", Monthly: 1.0, Weekly: 1.0, Colour: "#c4baff"},
 	{Name: "🍽️ Restaurant", Monthly: 1.0, Weekly: 1.0, Colour: "#cebeff"},
 	{Name: "😎 Leisure", Monthly: 1.0, Weekly: 1.0, Colour: "#d8c2ff"},
-	{Name: "🚌 Public transportation", Monthly: 1.0, Weekly: 1.0, Colour: "#e2c6ff"},
+	{Name: "🚌 Public transport", Monthly: 1.0, Weekly: 1.0, Colour: "#e2c6ff"},
 	{Name: "📈 Investment", Monthly: 1.0, Weekly: 1.0, Colour: "#eccaff"},
 	{Name: "📱 Phone", Monthly: 1.0, Weekly: 1.0, Colour: "#c4c7ff"},
 	{Name: "👕 Clothing", Monthly: 1.0, Weekly: 1.0, Colour: "#c1cdf9"},

@@ -5,18 +5,19 @@ import {
   Select,
   SelectChangeEvent
 } from '@mui/material';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import { DateField } from '@mui/x-date-pickers';
 import { PeriodValue, TimePeriod } from '../../Utils/Types';
 
 interface TimePeriodSelectorProps {
   onTimePeriodChange: (timePeriod: TimePeriod) => void;
+  firstDate: number;
 }
 
-function TimePeriodSelector({ onTimePeriodChange }: TimePeriodSelectorProps) {
+function TimePeriodSelector({ onTimePeriodChange, firstDate }: TimePeriodSelectorProps) {
   const [selectedOption, setSelectedOption] = useState(PeriodValue.All);
-  const [startDate, setStartDate] = useState<Date>(new Date(0));
+  const [startDate, setStartDate] = useState<Date>(new Date(firstDate || 0));
   const [endDate, setEndDate] = useState<Date>(new Date());
 
   const handleOptionChange = (event: SelectChangeEvent<PeriodValue>) => {
@@ -61,7 +62,7 @@ function TimePeriodSelector({ onTimePeriodChange }: TimePeriodSelectorProps) {
         endDateCalc.setDate(endDateCalc.getDate() - 1);
         break;
       case PeriodValue.All:
-        startDateCalc = new Date(0);
+        startDateCalc = new Date(firstDate);
         endDateCalc = new Date();
         break;
       case PeriodValue.Custom:
