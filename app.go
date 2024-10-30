@@ -2,14 +2,16 @@ package main
 
 import (
 	"context"
-	"strconv"
+	"fmt"
 	"go-budget/ent"
 	dbPkg "go-budget/internal/db"
 	"go-budget/internal/models"
+	"strconv"
+
+	"go-budget/internal/parser"
 
 	"github.com/samber/lo"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
-	"go-budget/internal/parser"
 )
 
 // App struct
@@ -52,7 +54,20 @@ func (a *App) LoadFile(ctx context.Context, db *dbPkg.Db) {
 		return
 	}
 	// process file
-	parser.ImportFile(db, file, "TSB")
+	numImported, numCategorized, err := parser.ImportFile(db, file, "TSB")
+	if err != nil {
+		runtime.MessageDialog(ctx, runtime.MessageDialogOptions{
+			Type:    runtime.ErrorDialog,
+			Title:   "Import Failed",
+			Message: fmt.Sprintf("The parser returned the following error %s", err.Error()),
+		})
+	}
+	// alert number of categorized
+	runtime.MessageDialog(ctx, runtime.MessageDialogOptions{
+		Type:    runtime.InfoDialog,
+		Title:   "Import Complete",
+		Message: fmt.Sprintf("Imported %d transactions and auto categorized %d", numImported, numCategorized),
+	})
 }
 
 func (a *App) Categorize(ctx context.Context, db *dbPkg.Db, toCategorize []*ent.Transaction) ([]*ent.Transaction, int, error) {
@@ -84,7 +99,7 @@ func (a *App) CategorizeUncategorized(ctx context.Context, db *dbPkg.Db) (int, e
 	}
 	// Update db
 	for _, t := range categorized {
-		_, err = db.UpdateTransaction(t.ID, &t.Time, &t.Description, &t.Amount, &t.CategoryID, t.ReimbursedByID, &t.Ignored)
+		_, err = db.UpdateTransaction(t.ID, &t.Time, &t.Description, &t.Amount, t.CategoryID, t.ReimbursedByID, &t.Ignored)
 		if err != nil {
 			return 0, err
 		}

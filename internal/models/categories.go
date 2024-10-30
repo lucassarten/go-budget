@@ -3,6 +3,7 @@ package models
 import (
 	"go-budget/ent"
 	"sort"
+	"strings"
 
 	"github.com/agnivade/levenshtein"
 	"github.com/samber/lo"
@@ -11,6 +12,10 @@ import (
 var THRESHOLD = 10
 
 func Categorize(transactions []*ent.Transaction, toClassify []*ent.Transaction) ([]*ent.Transaction, int) {
+	// Ignore unclassified
+	transactions = lo.Filter(transactions, func(transaction *ent.Transaction, idx int) bool {
+		return transaction.CategoryID != nil
+	})
 	// Split into expenses and income
 	expenses := lo.Filter(transactions, func(transaction *ent.Transaction, idx int) bool {
 		return transaction.Amount < 0
@@ -39,9 +44,11 @@ func Categorize(transactions []*ent.Transaction, toClassify []*ent.Transaction) 
 		ranks = RankLavenstein(t.Description, searchList)
 		if len(ranks) > 0 && ranks[0].Distance < THRESHOLD {
 			toClassify[i].CategoryID = ranks[0].Transaction.CategoryID
+			// If exact match, mirror the ignored status
+			if strings.EqualFold(toClassify[i].Description, ranks[0].Transaction.Description) {
+				toClassify[i].Ignored = ranks[0].Transaction.Ignored
+			}
 			numCategorized += 1
-		} else {
-			toClassify[i].CategoryID = 0
 		}
 	}
 	return toClassify, numCategorized

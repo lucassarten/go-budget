@@ -42,6 +42,10 @@ export function GetCategoryTransactions(arg1) {
   return window['go']['db']['Db']['GetCategoryTransactions'](arg1);
 }
 
+export function GetOldestTransaction() {
+  return window['go']['db']['Db']['GetOldestTransaction']();
+}
+
 export function GetTransactionByID(arg1) {
   return window['go']['db']['Db']['GetTransactionByID'](arg1);
 }

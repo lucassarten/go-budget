@@ -172,6 +172,7 @@ const TransactionsTable = ({ type }: { type: string }) => {
   ), [fetchedCategories]);
 
   let inputRow = new ent.Transaction
+  inputRow.ignored = false
 
   const colDefs = useMemo<ColDef<ent.Transaction>[]>(() => (
     [
@@ -262,6 +263,7 @@ const TransactionsTable = ({ type }: { type: string }) => {
         field: "ignored",
         headerName: "Ignored",
         cellDataType: 'boolean',
+        editable: (params: any) => !isEmptyPinnedCell(params), 
         suppressHeaderFilterButton: true,
         //valueFormatter: params => params.value == null ? false : params.value,
         suppressAutoSize: true,
@@ -296,16 +298,27 @@ const TransactionsTable = ({ type }: { type: string }) => {
           const reimbursedTransaction = fetchedTransactions.find(
             (transaction) => transaction.id === params.data.reimbursed_by_id
           );
-          if (reimbursedTransaction) {
-            const totalAmount = params.value + Number(reimbursedTransaction.amount);
-            return (
-              <>
-                {formatCurrency(totalAmount)}{' '}
-                <span style={{ color: 'green' }}>
-                  ({formatCurrency(Number(reimbursedTransaction.amount)) + " - " + reimbursedTransaction.description})
-                </span>
-              </>
-            );
+              if (reimbursedTransaction) {
+                if (type === "Expense") {
+                  const totalAmount = params.value + Number(reimbursedTransaction.amount);
+                  return (
+                    <>
+                      {formatCurrency(totalAmount)}{' '}
+                      <span style={{ color: 'green' }}>
+                        ({formatCurrency(Number(reimbursedTransaction.amount)) + " - " + reimbursedTransaction.description})
+                      </span>
+                    </>
+                  );
+                } else {
+                  return (
+                    <>
+                      {formatCurrency(params.value)}{' '}
+                      <span style={{ color: 'red' }}>
+                        (reimburses - {reimbursedTransaction.description})
+                      </span>
+                    </>
+                  );
+                }
           } else {
             return formatCurrency(params.value);
           }
@@ -355,6 +368,7 @@ const TransactionsTable = ({ type }: { type: string }) => {
       createTransaction(params.data)
       //reset pinned row
       inputRow = new ent.Transaction
+      inputRow.ignored = false
     }
   }
 

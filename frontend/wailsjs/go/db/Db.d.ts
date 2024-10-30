@@ -6,7 +6,7 @@ export function Close():Promise<void>;
 
 export function CreateCategory(arg1:string,arg2:number,arg3:number,arg4:string,arg5:string):Promise<ent.Category>;
 
-export function CreateTransaction(arg1:number,arg2:string,arg3:number,arg4:number,arg5:boolean):Promise<ent.Transaction>;
+export function CreateTransaction(arg1:number,arg2:string,arg3:number,arg4:any,arg5:boolean):Promise<ent.Transaction>;
 
 export function DeleteCategory(arg1:number):Promise<void>;
 
@@ -21,6 +21,8 @@ export function GetCategoryByID(arg1:number):Promise<ent.Category>;
 export function GetCategoryByName(arg1:string):Promise<ent.Category>;
 
 export function GetCategoryTransactions(arg1:ent.Category):Promise<Array<ent.Transaction>>;
+
+export function GetOldestTransaction():Promise<ent.Transaction>;
 
 export function GetTransactionByID(arg1:number):Promise<ent.Transaction>;
 

@@ -1,8 +1,13 @@
 {
   "dependencies": {
     "@ag-grid-community/core": "^32.0.2",
+    "@tensorflow-models/qna": "^1.0.2",
+    "@tensorflow/tfjs-converter": "^4.22.0",
+    "@tensorflow/tfjs-core": "^4.22.0",
+    "@tensorflow/tfjs-node": "^4.22.0",
     "@types/react": "^18.3.3",
     "ag-grid-react": "^32.0.2",
+    "papaparse": "^5.4.1",
     "react-draggable": "^4.4.6"
   }
 }

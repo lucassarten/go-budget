@@ -11,7 +11,7 @@ import { Bar, Pie } from 'react-chartjs-2';
 import { GetCategories, GetTransactions } from "../../../wailsjs/go/db/Db";
 import { ent } from "../../../wailsjs/go/models";
 
-import { formatCurrency, formatDate, dateToUnix } from '../../Utils/Formatters';
+import { dateToUnix, formatCurrency, formatDate } from '../../Utils/Formatters';
 import { IntervalValue, PeriodValue, TimeInterval, TimePeriod, getIntervalFactor } from '../../Utils/Types';
 import CategorySelector from '../Selectors/CategorySelector';
 import IntervalSelector from '../Selectors/IntervalSelector';
@@ -93,13 +93,11 @@ function categoryPieChart(
   );
 }
 
-function IncomeEarningSavingsComparison(transactions: ent.Transaction[]) {
-  const income = transactions
-    .filter((transaction) => Number(transaction.amount) > 0)
-    .reduce((acc, transaction) => acc + Number(transaction.amount), 0);
-  const expenses = transactions
-    .filter((transaction) => Number(transaction.amount) < 0)
-    .reduce((acc, transaction) => acc + Math.abs(Number(transaction.amount)), 0);
+function IncomeEarningSavingsComparison(transactionsExpense: ent.Transaction[], transactionsIncome: ent.Transaction[]) {
+  const income = transactionsIncome.reduce((acc, transaction) => acc + Number(transaction.amount), 0);
+  const expenses = transactionsExpense.reduce((acc, transaction) => acc + Math.abs(Number(transaction.amount)), 0);
+  console.log("inc", income)
+  console.log("ex", expenses)
   return (
     <Bar
       data={{
@@ -391,51 +389,49 @@ function Dashboard() {
   const [categoriesExpense, setCategoriesExpense] = useState<ent.Category[]>([]);
   // This is the selection of data that the dashboard displays
   const [timeRange, setTimeRange] = useState<TimePeriod>({
-    startDate: new Date(0),
-    endDate: new Date(),
-    period: PeriodValue.LastWeek,
+    startDate: GetDefaultPeriod().startDate,
+    endDate: GetDefaultPeriod().endDate,
+    period: GetDefaultPeriod().period,
   });
   // These are buckets to group transactions into
   const [intervalExpense, setIntervalExpense] = useState<TimeInterval>({
-    startDate: GetDefaultPeriod().startDate,
-    endDate: GetDefaultPeriod().endDate,
-    interval: IntervalValue.Week,
+    startDate: GetDefaultInterval().startDate,
+    endDate: GetDefaultInterval().endDate,
+    interval: GetDefaultInterval().interval,
   });
   const [intervalIncome, setIntervalIncome] = useState<TimeInterval>({
-    startDate: GetDefaultPeriod().startDate,
-    endDate: GetDefaultPeriod().endDate,
-    interval: IntervalValue.Week,
+    startDate: GetDefaultInterval().startDate,
+    endDate: GetDefaultInterval().endDate,
+    interval: GetDefaultInterval().interval,
   });
   const [selectedCategoryExpense, setSelectedCategoryExpense] =
     useState<ent.Category>();
   const [selectedCategoryIncome, setSelectedCategoryIncome] =
     useState<ent.Category>();
   const [selectedInterval, setSelectedInterval] = useState<TimeInterval>({
-    startDate: GetDefaultPeriod().startDate,
-    endDate: GetDefaultPeriod().endDate,
-    interval: IntervalValue.Week,
+    startDate: GetDefaultInterval().startDate,
+    endDate: GetDefaultInterval().endDate,
+    interval: GetDefaultInterval().interval,
   });
   const [averageExpenses, setAverageExpenses] = useState<{ [category: string]: number }>({});
   const [grandTotal, setGrandTotal] = useState<number>(0);
-
-  console.log("interval", selectedInterval.endDate)
-  console.log("range", timeRange.endDate)
+  const [firstDate, setFirstDate] = useState<number>(0)
 
   useEffect(() => {
     // get transactions from db between time period
     GetTransactions().then((resp: ent.Transaction[]) => {
+      // remove ignored transactions from list
+      resp = resp.filter((transaction) => !transaction.ignored);
       // calc reimbursements
       resp.forEach((transaction) => {
-        if (transaction.reimbursed_by_id) {
-          const reimbursedTransaction = resp.find((item) => item.id === transaction.reimbursed_by_id);
-          if (reimbursedTransaction) {
-            transaction.amount = Math.min(Number(transaction.amount) + Number(reimbursedTransaction.amount), 0);
-          }
+        if (transaction.amount && transaction.amount < 0 && transaction.edges.reimbursed_by_transaction) {
+          transaction.amount = Math.min(Number(transaction.amount) + Math.abs(Number(transaction.edges.reimbursed_by_transaction.amount)), 0);
         }
       });
-      // remove reimbursed and ignored transactions from list
-      resp = resp.filter((transaction) => !transaction.reimbursed_by_id && !transaction.ignored);
+      // remove reimbursement transactions
+      resp = resp.filter((transaction) => (transaction.amount && transaction.amount < 0) || (transaction.amount && transaction.amount > 0 && !transaction.edges.reimbursed_by_transaction));
       setTransactions(resp);
+      setFirstDate(Math.min(...resp.map(t => t.time || firstDate)));
     });
     // get categories from db
     GetCategories().then((resp: ent.Category[]) => {
@@ -458,14 +454,16 @@ function Dashboard() {
 
   // Split categories into expense and income categories
   useEffect(() => {
-    setCategoriesIncome(categories.filter((c) => c.type === "Income"));
-    setCategoriesExpense(categories.filter((c) => c.type === "Expense"));
+    const income = categories.filter((c) => c.type === "Income")
+    const expense = categories.filter((c) => c.type === "Expense")
+    setCategoriesIncome(income);
+    setCategoriesExpense(expense);
 
-    if (categoriesIncome.length > 0) {
-      setSelectedCategoryIncome(categoriesIncome[0]);
+    if (income.length > 0) {
+      setSelectedCategoryIncome(income[0]);
     }
-    if (categoriesExpense.length > 0) {
-      setSelectedCategoryExpense(categoriesExpense[0]);
+    if (expense.length > 0) {
+      setSelectedCategoryExpense(expense[0]);
     }
   }, [categories]);
 
@@ -486,21 +484,18 @@ function Dashboard() {
     (transaction) => Number(transaction.amount) > 0
   );
   // wait for use state to be set before returning
-  if (
-    selectedCategoryIncome === undefined ||
-    selectedCategoryExpense === undefined
-  ) {
-    return <div>Loading...</div>;
-  }
   return (
     <div className="dashboard-container">
-      <div className="time-period-selector-container">
-        <TimePeriodSelector onTimePeriodChange={setTimeRange} />
-      </div>
+      {firstDate === 0 ? 
+        <></> :
+        <div className="time-period-selector-container">
+          <TimePeriodSelector onTimePeriodChange={setTimeRange} firstDate={firstDate} />
+        </div>
+      }
       <div className="dashboard-graph-container">
         <div className="dashboard-chart-grid">
           <div className="bar-chart-container">
-            {IncomeEarningSavingsComparison(transactionsInTimeRange)}
+            {IncomeEarningSavingsComparison(transactionsExpense, transactionsIncome)}
           </div>
           <div className="pie-chart-container">
             {categoryPieChart('Expense', categoriesExpense, transactionsExpense)}
@@ -510,40 +505,48 @@ function Dashboard() {
           </div>
         </div>
         <div className="dashboard-comparison-grid">
-          <div className="budget-comparison-container">
-            <div className="category-selector-container">
-              <CategorySelector
-                onCategoryChange={setSelectedCategoryExpense}
-                categories={categoriesExpense}
-              />
-              <IntervalSelector onIntervalChange={setIntervalExpense} />
-            </div>
-            <div className="comparison-chart-container">
-              {budgetComparisonBarChart(
-                intervalExpense,
-                selectedCategoryExpense,
-                transactionsInTimeRange,
-                'Expense'
-              )}
-            </div>
-          </div>
-          <div className="budget-comparison-container">
-            <div className="category-selector-container">
-              <CategorySelector
-                onCategoryChange={setSelectedCategoryIncome}
-                categories={categoriesIncome}
-              />
-              <IntervalSelector onIntervalChange={setIntervalIncome} />
-            </div>
-            <div className="comparison-chart-container">
-              {budgetComparisonBarChart(
-                intervalIncome,
-                selectedCategoryIncome,
-                transactionsInTimeRange,
-                'Income'
-              )}
-            </div>
-          </div>
+          {
+            selectedCategoryExpense === undefined ?
+              <></> :
+              <div className="budget-comparison-container">
+                <div className="category-selector-container">
+                  <CategorySelector
+                    onCategoryChange={setSelectedCategoryExpense}
+                    categories={categoriesExpense}
+                  />
+                  <IntervalSelector onIntervalChange={setIntervalExpense} />
+                </div>
+                <div className="comparison-chart-container">
+                  {budgetComparisonBarChart(
+                    intervalExpense,
+                    selectedCategoryExpense,
+                    transactions,
+                    'Expense'
+                  )}
+                </div>
+              </div>
+          }
+          {
+            selectedCategoryIncome === undefined ?
+              <></> :
+              <div className="budget-comparison-container">
+                <div className="category-selector-container">
+                  <CategorySelector
+                    onCategoryChange={setSelectedCategoryIncome}
+                    categories={categoriesIncome}
+                  />
+                  <IntervalSelector onIntervalChange={setIntervalIncome} />
+                </div>
+                <div className="comparison-chart-container">
+                  {budgetComparisonBarChart(
+                    intervalIncome,
+                    selectedCategoryIncome,
+                    transactions,
+                    'Income'
+                  )}
+                </div>
+              </div>
+          }
         </div>
       </div>
       <div className="full-column-table">
@@ -561,12 +564,19 @@ function Dashboard() {
             </tr>
           </thead>
           <tbody>
-            {categories.map((category) => (
-              <tr key={category.id}>
-                <td>{category.name}</td>
-                <td>{category.name && formatCurrency(averageExpenses[category.name] || 0)}</td>
-              </tr>
-            ))}
+            {categories
+              .sort((a, b) => {
+                const expenseA = a.name ? averageExpenses[a.name] || 0 : 0;
+                const expenseB = b.name ? averageExpenses[b.name] || 0 : 0;
+                return expenseB - expenseA;
+              })
+              .map((category) => (
+                <tr key={category.id}>
+                  <td>{category.name}</td>
+                  <td>{category.name && formatCurrency(averageExpenses[category.name] || 0)}</td>
+                </tr>
+              ))}
+
             <br></br>
             <tr>
               <td><strong>Total</strong></td>
@@ -580,7 +590,7 @@ function Dashboard() {
 }
 
 
-export function GetDefaultPeriod(): TimePeriod {
+export function GetDefaultInterval(): TimeInterval {
   const startDateCalc = new Date();
   startDateCalc.setDate(startDateCalc.getDate() - startDateCalc.getDay() + 1);
   const endDateCalc = new Date(startDateCalc);
@@ -590,7 +600,21 @@ export function GetDefaultPeriod(): TimePeriod {
   return {
     startDate: startDateCalc,
     endDate: endDateCalc,
-    period: PeriodValue.LastWeek,
+    interval: IntervalValue.Week,
+  };
+}
+
+export function GetDefaultPeriod(): TimePeriod {
+  const startDateCalc = new Date();
+  startDateCalc.setMonth(0);
+  startDateCalc.setDate(1);
+  const endDateCalc = new Date(startDateCalc);
+  endDateCalc.setFullYear(endDateCalc.getFullYear() + 1);
+  endDateCalc.setDate(endDateCalc.getDate() - 1);
+  return {
+    startDate: startDateCalc,
+    endDate: endDateCalc,
+    period: PeriodValue.LastYear,
   };
 }
 

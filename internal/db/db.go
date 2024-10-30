@@ -73,7 +73,7 @@ func (db *Db) Startup(ctx context.Context) {
 			panic(err)
 		}
 		for _, t := range GenerateTestTransactions() {
-			_, err := db.CreateTransaction(t.Time, t.Description, t.Amount, t.CategoryID, t.Ignored)
+			_, err := db.CreateTransaction(t.Time, t.Description, t.Amount, &t.CategoryID, t.Ignored)
 			if err != nil {
 				panic(err)
 			}
@@ -117,6 +117,14 @@ func (db *Db) GetTransactionByID(id int) (*ent.Transaction, error) {
 
 func (db *Db) GetTransactions() ([]*ent.Transaction, error) {
 	txs, err := db.client.Transaction.Query().WithCategory().WithReimbursedByTransaction().All(db.ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get transactions: %w", err)
+	}
+	return txs, nil
+}
+
+func (db *Db) GetOldestTransaction() (*ent.Transaction, error) {
+	txs, err := db.client.Transaction.Query().Order(ent.Desc("time")).First(db.ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get transactions: %w", err)
 	}
@@ -179,14 +187,16 @@ func (db *Db) GetCategoryTransactions(category ent.Category) ([]*ent.Transaction
 	return tx, nil
 }
 
-func (db *Db) CreateTransaction(time int64, description string, amount float64, categoryID int, ignored bool) (*ent.Transaction, error) {
-	return db.client.Transaction.Create().
-		SetTime(time).
-		SetDescription(description).
-		SetAmount(amount).
-		SetIgnored(ignored).
-		SetCategoryID(categoryID).
-		Save(db.ctx)
+func (db *Db) CreateTransaction(time int64, description string, amount float64, categoryID *int, ignored bool) (*ent.Transaction, error) {
+	var creator = db.client.Transaction.Create()
+	creator.SetTime(time)
+	creator.SetDescription(description)
+	creator.SetAmount(amount)
+	creator.SetIgnored(ignored)
+	if categoryID != nil {
+		creator.SetCategoryID(*categoryID)
+	}
+	return creator.Save(db.ctx)
 }
 
 // CreateCategory creates a new category
