@@ -12,6 +12,21 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.actor == 'dependabot[bot]' }}
     steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+      - name: Build
+        uses: dAppServer/wails-build-action@v2.2
+        with:
+          build-name: go-budget
+          build-platform: linux/amd64
+          package: true
+          go-version: '1.24'
+      - name: Test
+        run: go test ./...
       - name: automerge
         uses: actions/github-script@0.2.0
         with:

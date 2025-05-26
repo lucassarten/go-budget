@@ -1,8 +1,6 @@
 module go-budget
 
-go 1.23.0
-
-toolchain go1.23.2
+go 1.24.3
 
 require (
 	entgo.io/ent v0.14.4
@@ -10,7 +8,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.28
 	github.com/samber/lo v1.50.0
 	github.com/stretchr/testify v1.10.0
-	github.com/wailsapp/wails/v2 v2.10.1
+	github.com/wailsapp/wails/v2 v2.9.2
 )
 
 require (
