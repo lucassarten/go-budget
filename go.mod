@@ -8,7 +8,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.28
 	github.com/samber/lo v1.50.0
 	github.com/stretchr/testify v1.10.0
-	github.com/wailsapp/wails/v2 v2.9.2
+	github.com/wailsapp/wails/v2 v2.10.1
 )
 
 require (
@@ -54,5 +54,3 @@ require (
 	golang.org/x/tools v0.33.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-// replace github.com/wailsapp/wails/v2 v2.8.0 => /home/lucas/go/pkg/mod
