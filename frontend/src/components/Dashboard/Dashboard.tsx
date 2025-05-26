@@ -94,8 +94,10 @@ function categoryPieChart(
 }
 
 function IncomeEarningSavingsComparison(transactionsExpense: ent.Transaction[], transactionsIncome: ent.Transaction[]) {
-  const income = transactionsIncome.reduce((acc, transaction) => acc + Number(transaction.amount), 0);
-  const expenses = transactionsExpense.reduce((acc, transaction) => acc + Math.abs(Number(transaction.amount)), 0);
+
+  // remove ignored transactions from list
+  const income = transactionsIncome.filter((transaction) => !transaction.ignored).reduce((acc, transaction) => acc + Number(transaction.amount), 0);
+  const expenses = transactionsExpense.filter((transaction) => !transaction.ignored).reduce((acc, transaction) => acc + Math.abs(Number(transaction.amount)), 0);
   console.log("inc", income)
   console.log("ex", expenses)
   return (
@@ -420,8 +422,6 @@ function Dashboard() {
   useEffect(() => {
     // get transactions from db between time period
     GetTransactions().then((resp: ent.Transaction[]) => {
-      // remove ignored transactions from list
-      resp = resp.filter((transaction) => !transaction.ignored);
       // calc reimbursements
       resp.forEach((transaction) => {
         if (transaction.amount && transaction.amount < 0 && transaction.edges.reimbursed_by_transaction) {

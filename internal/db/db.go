@@ -212,10 +212,6 @@ func (db *Db) CreateCategory(name string, monthly float64, weekly float64, colou
 
 // UpdateTransaction updates a transaction with the given details
 func (db *Db) UpdateTransaction(id int, time *int64, description *string, amount *float64, categoryID *int, reimbursedByID *int, ignored *bool) (*ent.Transaction, error) {
-	// println(id, *description, *categoryID, *time)
-	// if reimbursedByID != nil {
-	// 	println(*reimbursedByID)
-	// }
 	tx, err := db.client.Transaction.Get(db.ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("transaction not found: %w", err)
@@ -233,7 +229,11 @@ func (db *Db) UpdateTransaction(id int, time *int64, description *string, amount
 		updater.SetAmount(*amount)
 	}
 	if categoryID != nil {
-		updater.SetCategoryID(*categoryID)
+		if *categoryID == -1 {
+			updater.ClearCategoryID()
+		} else {
+			updater.SetCategoryID(*categoryID)
+		}
 	}
 	if reimbursedByID != nil { // deep update
 		existingReimbursedByTx, err := db.client.Transaction.Query().

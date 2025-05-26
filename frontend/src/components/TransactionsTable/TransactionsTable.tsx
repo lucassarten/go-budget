@@ -9,9 +9,9 @@ import "ag-grid-community/styles/ag-theme-material.css";
 import Draggable from "react-draggable";
 
 import { AgGridReact } from 'ag-grid-react';
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
-import { Box, Button, IconButton, Popover, Tooltip } from "@mui/material";
+import { Box, Button, IconButton, Popover, Switch, Tooltip } from "@mui/material";
 import { ColDef } from "ag-grid-community";
 import PopupState, { bindPopover, bindTrigger } from 'material-ui-popup-state';
 import {
@@ -137,6 +137,7 @@ function useDeleteTransaction() {
 
 const TransactionsTable = ({ type }: { type: string }) => {
   // hooks
+  const [hideReimbursed, setHideReimbursed] = useState(type == "Income" ? true : false)
   const {
     data: fetchedTransactions = [],
     isError: isLoadingTransactionsError,
@@ -155,9 +156,14 @@ const TransactionsTable = ({ type }: { type: string }) => {
     useUpdateTransaction(type);
   const { mutateAsync: deleteTransaction, isPending: isDeletingTransaction } =
     useDeleteTransaction();
+  
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setHideReimbursed(event.target.checked);
+    gridRef.current?.api.redrawRows();
+  };
 
   const filteredTransactions = useMemo(() => {
-    const updatedTransactions = fetchedTransactions.map((transaction) => ({
+    let updatedTransactions = fetchedTransactions.map((transaction) => ({
       ...transaction,
       ignored: transaction.ignored === undefined ? false : transaction.ignored,
     }));
@@ -167,8 +173,14 @@ const TransactionsTable = ({ type }: { type: string }) => {
       : updatedTransactions.filter((transaction) => Number(transaction.amount) < 0);
   }, [type, fetchedTransactions]);
 
+  const nonReimbursedTransactions = useMemo(() => {
+    return filteredTransactions.filter((transaction) =>
+      transaction.edges.reimbursed_by_transaction == null
+    )
+  }, [filteredTransactions]);
+
   const categoryIds = useMemo(() => (
-    fetchedCategories.map((category) => (category.id))
+    fetchedCategories.map((category) => (category.id)).concat(-1)
   ), [fetchedCategories]);
 
   let inputRow = new ent.Transaction
@@ -177,6 +189,16 @@ const TransactionsTable = ({ type }: { type: string }) => {
   const colDefs = useMemo<ColDef<ent.Transaction>[]>(() => (
     [
       {
+        headerComponent: () => {
+          return <Box sx={{ display: "flex", gap: "1rem" }}>
+            {type === "Income" && (
+              <div className='transactions-search-toolbar-text'>
+                Hide reimbursed <Switch defaultChecked onChange={handleChange} />
+              </ div>
+              
+            )}
+          </Box>
+        },
         cellRenderer: (props: any) => {
           if (props.node.rowPinned == 'top') return
           return <Box sx={{ display: "flex", gap: "1rem" }}>
@@ -379,7 +401,7 @@ const TransactionsTable = ({ type }: { type: string }) => {
         pinnedTopRowData={[inputRow]}
         onCellEditingStopped={onCellEditingStopped}
         ref={gridRef}
-        rowData={filteredTransactions}
+        rowData={hideReimbursed ? nonReimbursedTransactions : filteredTransactions}
         columnDefs={colDefs}
         defaultColDef={defaultColDef}
         onGridReady={onGridReady}
