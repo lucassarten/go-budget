@@ -6,7 +6,7 @@
     "@tensorflow/tfjs-core": "^4.22.0",
     "@tensorflow/tfjs-node": "^4.22.0",
     "@types/react": "^18.3.12",
-    "ag-grid-react": "^34.0.2",
+    "ag-grid-react": "^34.1.0",
     "papaparse": "^5.5.3",
     "react-draggable": "^4.5.0"
   }
