@@ -3,7 +3,7 @@ module go-budget
 go 1.24.3
 
 require (
-	entgo.io/ent v0.14.4
+	entgo.io/ent v0.14.5
 	github.com/agnivade/levenshtein v1.2.1
 	github.com/mattn/go-sqlite3 v1.14.29
 	github.com/samber/lo v1.51.0
