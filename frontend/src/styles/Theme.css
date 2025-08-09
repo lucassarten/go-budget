@@ -1,4 +1,7 @@
 :root {
+  /* generic */
+  --background-colour: #1d1d1d;
+  --accent-colour: #7633ba;
   /* tabs in the top toolbar */
   --tab-text-color: #ffffff;
   --tab-dashboard: #234578;

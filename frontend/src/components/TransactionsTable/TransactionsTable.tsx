@@ -4,15 +4,13 @@
 /* eslint-disable camelcase */
 import DeleteIcon from '@mui/icons-material/Delete';
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import "ag-grid-community/styles/ag-grid.css";
-import "ag-grid-community/styles/ag-theme-material.css";
 import Draggable from "react-draggable";
 
+import { AllCommunityModule, ColDef, colorSchemeDark, ModuleRegistry, themeMaterial } from "ag-grid-community";
 import { AgGridReact } from 'ag-grid-react';
 import { useCallback, useMemo, useRef, useState } from "react";
 
 import { Box, Button, IconButton, Popover, Switch, Tooltip } from "@mui/material";
-import { ColDef } from "ag-grid-community";
 import PopupState, { bindPopover, bindTrigger } from 'material-ui-popup-state';
 import {
   CreateTransaction,
@@ -26,6 +24,13 @@ import TransactionSearch from '../TransactionSearch/TransactionSearch';
 
 import { convertToUnixTimestamp, formatCurrency, formatDate } from '../../Utils/Formatters';
 import { createPinnedCellPlaceholder, isEmptyPinnedCell, isRowDataCompleted } from '../../Utils/TableHelpers';
+
+ModuleRegistry.registerModules([AllCommunityModule]);
+const themeMaterialdark = themeMaterial.withPart(colorSchemeDark)
+  .withParams({
+    backgroundColor: window.getComputedStyle(document.body).getPropertyValue('--background-colour'),
+    accentColor: window.getComputedStyle(document.body).getPropertyValue('--accent-colour'),
+  });
 
 // database management functions
 
@@ -189,6 +194,7 @@ const TransactionsTable = ({ type }: { type: string }) => {
   const colDefs = useMemo<ColDef<ent.Transaction>[]>(() => (
     [
       {
+        headerClass: 'col-header',
         headerComponent: () => {
           return <Box sx={{ display: "flex", gap: "1rem" }}>
             {type === "Income" && (
@@ -282,6 +288,7 @@ const TransactionsTable = ({ type }: { type: string }) => {
         maxWidth: 200,
       },
       {
+        headerClass: 'col-header',
         field: "ignored",
         headerName: "Ignored",
         cellDataType: 'boolean',
@@ -293,6 +300,7 @@ const TransactionsTable = ({ type }: { type: string }) => {
         maxWidth: 100,
       },
       {
+        headerClass: 'col-header',
         field: "time",
         headerName: "Date",
         sort: "desc",
@@ -305,6 +313,7 @@ const TransactionsTable = ({ type }: { type: string }) => {
         valueParser: params => convertToUnixTimestamp("dd/mm/yyyy", params.newValue)
       },
       {
+        headerClass: 'col-header',
         field: "description",
         cellRenderer: (params: any) =>
           isEmptyPinnedCell(params)
@@ -312,6 +321,7 @@ const TransactionsTable = ({ type }: { type: string }) => {
             : params.value,
       },
       {
+        headerClass: 'col-header',
         field: "amount",
         cellRenderer: (params: any) =>
           isEmptyPinnedCell(params)
@@ -347,6 +357,7 @@ const TransactionsTable = ({ type }: { type: string }) => {
         }, [fetchedTransactions]),
       },
       {
+        headerClass: 'col-header',
         field: "category_id",
         headerName: "Category",
         cellStyle: { 'textAlign': "left" },
@@ -397,6 +408,7 @@ const TransactionsTable = ({ type }: { type: string }) => {
   return (
     <div className="ag-theme-material-dark">
       <AgGridReact
+        theme={themeMaterialdark}
         suppressScrollOnNewData={true}
         pinnedTopRowData={[inputRow]}
         onCellEditingStopped={onCellEditingStopped}

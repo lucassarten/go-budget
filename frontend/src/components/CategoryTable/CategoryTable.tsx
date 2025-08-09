@@ -8,10 +8,8 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
-import "ag-grid-community/styles/ag-grid.css";
-import "ag-grid-community/styles/ag-theme-material.css";
 
-import { ColDef } from "ag-grid-community";
+import { ColDef, colorSchemeDark, themeMaterial } from "ag-grid-community";
 import { AgGridReact } from 'ag-grid-react';
 
 import { useCallback, useMemo, useRef } from 'react';
@@ -22,6 +20,12 @@ import { IconButton, Tooltip } from '@mui/material';
 import { formatCurrency } from '../../Utils/Formatters';
 import { createPinnedCellPlaceholder, isEmptyPinnedCell, isRowDataCompleted } from '../../Utils/TableHelpers';
 import './CategoryTable.css';
+
+const themeMaterialdark = themeMaterial.withPart(colorSchemeDark)
+  .withParams({
+    backgroundColor: window.getComputedStyle(document.body).getPropertyValue('--background-colour'),
+    accentColor: window.getComputedStyle(document.body).getPropertyValue('--accent-colour'),
+  });
 
 // database management functions
 
@@ -126,6 +130,7 @@ const CategoryTable = ({ type }: { type: string }) => {
   const colDefs = useMemo<ColDef<ent.Category>[]>(() => (
     [
       {
+        headerClass: 'col-header',
         cellRenderer: (props: any) => {
           if (props.node.rowPinned == 'top') return
           return <Tooltip title="Delete">
@@ -149,6 +154,7 @@ const CategoryTable = ({ type }: { type: string }) => {
         maxWidth: 50,
       },
       {
+        headerClass: 'col-header',
         field: "name",
         headerName: "Name",
         cellStyle: { 'textAlign': "left" },
@@ -159,6 +165,7 @@ const CategoryTable = ({ type }: { type: string }) => {
             : params.value,
       }, 
       {
+        headerClass: 'col-header',
         field: "weekly",
         headerName: "Weekly Budget",
         cellRenderer: (params: any) =>
@@ -167,6 +174,7 @@ const CategoryTable = ({ type }: { type: string }) => {
             : formatCurrency(params.value)
       },
       {
+        headerClass: 'col-header',
         field: "monthly",
         headerName: "Monthly Budget",
         cellRenderer: (params: any) =>
@@ -175,6 +183,7 @@ const CategoryTable = ({ type }: { type: string }) => {
             : formatCurrency(params.value)
       },
       {
+        headerClass: 'col-header',
         field: "colour",
         headerName: "Colour",
         cellRenderer: (params: any) =>
@@ -224,6 +233,7 @@ const CategoryTable = ({ type }: { type: string }) => {
   return (
     <div className="ag-theme-material-dark">
       <AgGridReact
+        theme={themeMaterialdark}
         suppressScrollOnNewData={true}
         pinnedTopRowData={[inputRow]}
         onCellEditingStopped={onCellEditingStopped}

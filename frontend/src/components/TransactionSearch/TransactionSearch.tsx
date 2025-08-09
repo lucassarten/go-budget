@@ -6,13 +6,18 @@ import { Box, Button, Switch } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useMemo, useRef, useState } from "react";
 
-import { ColDef } from "ag-grid-community";
-import "ag-grid-community/styles/ag-grid.css";
-import "ag-grid-community/styles/ag-theme-material.css";
+import { ColDef, colorSchemeDark, themeMaterial } from "ag-grid-community";
+
 import { AgGridReact } from "ag-grid-react";
 import { GetCategoriesByType, GetTransactions } from "../../../wailsjs/go/db/Db";
 import { ent } from "../../../wailsjs/go/models";
 import { formatCurrency, formatDate } from "../../Utils/Formatters";
+
+const themeMaterialdark = themeMaterial.withPart(colorSchemeDark)
+  .withParams({
+    backgroundColor: window.getComputedStyle(document.body).getPropertyValue('--background-colour'),
+    accentColor: window.getComputedStyle(document.body).getPropertyValue('--accent-colour'),
+  });
 
 function useGetTransactions(type: string) {
   return useQuery<ent.Transaction[]>({
@@ -75,6 +80,7 @@ const TransactionSearch = ({
   const colDefs = useMemo<ColDef<ent.Transaction>[]>(() => (
     [
       {
+        headerClass: 'col-header',
         cellRenderer: (props: any) => {
           return <Box sx={{ display: "flex", gap: "1rem" }}>
             <Button onClick={() => onSelect(props.data)}>Select</Button>
@@ -94,13 +100,16 @@ const TransactionSearch = ({
         valueFormatter: params => formatDate(params.value),
       },
       {
+        headerClass: 'col-header',
         field: "description",
       },
       {
+        headerClass: 'col-header',
         field: "amount",
         valueFormatter: params => formatCurrency(params.value),
       },
       {
+        headerClass: 'col-header',
         field: "category_id",
         headerName: "Category",
         cellStyle: { 'textAlign': "left" },
@@ -143,6 +152,7 @@ const TransactionSearch = ({
       </Box>
       <div className="ag-theme-material-dark" style={{ height: 'calc(100% - 30px)' }}>
         <AgGridReact
+          theme={themeMaterialdark}
           suppressScrollOnNewData={true}
           ref={gridRef}
           rowData={reimbursedOnly ? nonReimbursedTransactions : filteredTransactions}

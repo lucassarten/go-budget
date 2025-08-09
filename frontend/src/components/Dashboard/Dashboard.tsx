@@ -98,8 +98,8 @@ function IncomeEarningSavingsComparison(transactionsExpense: ent.Transaction[], 
   // remove ignored transactions from list
   const income = transactionsIncome.filter((transaction) => !transaction.ignored).reduce((acc, transaction) => acc + Number(transaction.amount), 0);
   const expenses = transactionsExpense.filter((transaction) => !transaction.ignored).reduce((acc, transaction) => acc + Math.abs(Number(transaction.amount)), 0);
-  console.log("inc", income)
-  console.log("ex", expenses)
+  // console.log("inc", income)
+  // console.log("ex", expenses)
   return (
     <Bar
       data={{
@@ -431,7 +431,18 @@ function Dashboard() {
       // remove reimbursement transactions
       resp = resp.filter((transaction) => (transaction.amount && transaction.amount < 0) || (transaction.amount && transaction.amount > 0 && !transaction.edges.reimbursed_by_transaction));
       setTransactions(resp);
-      setFirstDate(Math.min(...resp.map(t => t.time || firstDate)));
+      // get the earliest transaction date
+      const earliestTransaction = resp.reduce((earliest, transaction) => {
+        const transactionDate = new Date(Number(transaction.time));
+        return transactionDate < earliest ? transactionDate : earliest;
+      }, new Date());
+      setFirstDate(earliestTransaction.getTime());
+      // set the first date to the earliest transaction date
+      setTimeRange({
+        startDate: earliestTransaction,
+        endDate: new Date(),
+        period: PeriodValue.All,
+      });
     });
     // get categories from db
     GetCategories().then((resp: ent.Category[]) => {
@@ -485,13 +496,11 @@ function Dashboard() {
   );
   // wait for use state to be set before returning
   return (
-    <div className="dashboard-container">
-      {firstDate === 0 ? 
-        <></> :
+    firstDate === 0 ?
+      <>test</> : <div className="dashboard-container">
         <div className="time-period-selector-container">
           <TimePeriodSelector onTimePeriodChange={setTimeRange} firstDate={firstDate} />
         </div>
-      }
       <div className="dashboard-graph-container">
         <div className="dashboard-chart-grid">
           <div className="bar-chart-container">
