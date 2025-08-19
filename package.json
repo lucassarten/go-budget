@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "@ag-grid-community/core": "^32.3.8",
+    "@ag-grid-community/core": "^32.3.9",
     "@tensorflow-models/qna": "^1.0.2",
     "@tensorflow/tfjs-converter": "^4.22.0",
     "@tensorflow/tfjs-core": "^4.22.0",
