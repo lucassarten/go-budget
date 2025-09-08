@@ -7,7 +7,7 @@ require (
 	github.com/agnivade/levenshtein v1.2.1
 	github.com/mattn/go-sqlite3 v1.14.32
 	github.com/samber/lo v1.51.0
-	github.com/stretchr/testify v1.11.0
+	github.com/stretchr/testify v1.11.1
 	github.com/wailsapp/wails/v2 v2.10.2
 )
 
