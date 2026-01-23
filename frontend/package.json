@@ -22,7 +22,7 @@
     "chartjs-plugin-annotation": "^3.0.1",
     "chartjs-plugin-datalabels": "^2.2.0",
     "csv-parse": "^5.5.5",
-    "lodash": "^4.17.21",
+    "lodash": "^4.17.23",
     "lodash.debounce": "^4.0.8",
     "material-react-table": "^2.12.1",
     "material-ui-popup-state": "^5.0.10",
