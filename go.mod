@@ -3,7 +3,7 @@ module go-budget
 go 1.24.3
 
 require (
-	entgo.io/ent v0.14.5
+	entgo.io/ent v0.14.6
 	github.com/agnivade/levenshtein v1.2.1
 	github.com/mattn/go-sqlite3 v1.14.34
 	github.com/samber/lo v1.53.0
@@ -12,7 +12,7 @@ require (
 )
 
 require (
-	ariga.io/atlas v0.33.1 // indirect
+	ariga.io/atlas v0.36.2-0.20250730182955-2c6300d0a3e1 // indirect
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
 	github.com/bep/debounce v1.2.1 // indirect
