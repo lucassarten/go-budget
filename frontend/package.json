@@ -22,7 +22,7 @@
     "chartjs-plugin-annotation": "^3.0.1",
     "chartjs-plugin-datalabels": "^2.2.0",
     "csv-parse": "^5.5.5",
-    "lodash": "^4.17.23",
+    "lodash": "^4.18.1",
     "lodash.debounce": "^4.0.8",
     "material-react-table": "^2.12.1",
     "material-ui-popup-state": "^5.0.10",
@@ -38,6 +38,6 @@
     "@types/react-dom": "^18.2.0",
     "@vitejs/plugin-react": "^4.5.0",
     "typescript": "^4.6.4",
-    "vite": "^6.4.1"
+    "vite": "^6.4.2"
   }
 }
