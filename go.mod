@@ -5,7 +5,7 @@ go 1.25.0
 require (
 	entgo.io/ent v0.14.6
 	github.com/agnivade/levenshtein v1.2.1
-	github.com/mattn/go-sqlite3 v1.14.49
+	github.com/mattn/go-sqlite3 v1.14.50
 	github.com/samber/lo v1.53.0
 	github.com/stretchr/testify v1.12.1
 	github.com/wailsapp/wails/v2 v2.14.0
