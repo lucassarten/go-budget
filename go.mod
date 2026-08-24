@@ -7,7 +7,7 @@ require (
 	github.com/agnivade/levenshtein v1.2.1
 	github.com/mattn/go-sqlite3 v1.14.49
 	github.com/samber/lo v1.53.0
-	github.com/stretchr/testify v1.12.0
+	github.com/stretchr/testify v1.12.1
 	github.com/wailsapp/wails/v2 v2.14.0
 )
 
@@ -45,6 +45,7 @@ require (
 	github.com/wailsapp/mimetype v1.4.1 // indirect
 	github.com/zclconf/go-cty v1.16.3 // indirect
 	github.com/zclconf/go-cty-yaml v1.1.0 // indirect
+	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/crypto v0.53.0 // indirect
 	golang.org/x/mod v0.37.0 // indirect
 	golang.org/x/net v0.56.0 // indirect
