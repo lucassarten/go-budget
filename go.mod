@@ -8,7 +8,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.52
 	github.com/samber/lo v1.53.0
 	github.com/stretchr/testify v1.12.1
-	github.com/wailsapp/wails/v2 v2.15.0
+	github.com/wailsapp/wails/v2 v2.16.0
 )
 
 require (
