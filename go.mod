@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	entgo.io/ent v0.14.6
-	github.com/agnivade/levenshtein v1.2.1
+	github.com/agnivade/levenshtein v1.2.2
 	github.com/mattn/go-sqlite3 v1.14.52
 	github.com/samber/lo v1.53.0
 	github.com/stretchr/testify v1.12.1
